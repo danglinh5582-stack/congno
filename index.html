@@ -1,1 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tra cứu công nợ</title>
 
+<style>
+
+body{
+font-family:Arial;
+margin:20px;
+}
+
+h1{
+text-align:center;
+}
+
+input{
+width:100%;
+padding:10px;
+margin-bottom:15px;
+}
+
+.table-wrap{
+overflow:auto;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+font-size:13px;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:6px;
+white-space:normal;
+word-break:break-word;
+}
+
+th{
+background:#0f4c81;
+color:white;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>TRA CỨU CÔNG NỢ KHÁCH HÀNG</h1>
+
+<input
+id="search"
+placeholder="Nhập mã KH, tên KH, địa chỉ...">
+
+<div class="table-wrap">
+
+<table id="tbl">
+
+<thead></thead>
+
+<tbody></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+const SHEET_URL =
+'https://docs.google.com/spreadsheets/d/e/2PACX-1vQgbcKx93iDhkfxCsuBlFEpwuex_SS1X9_PkZ-MTA-7GAUK_QRdLIcvwuYS_wFknMclAQp1meo27-mm/pub?output=csv';
+
+let allRows=[];
+
+fetch(SHEET_URL)
+
+.then(r=>r.text())
+
+.then(text=>{
+
+const rows=text
+.trim()
+.split(/\r?\n/);
+
+const data =
+rows.map(r=>r.split(','));
+
+allRows=data;
+
+render("");
+
+});
+
+function render(keyword){
+
+const thead =
+document.querySelector("#tbl thead");
+
+const tbody =
+document.querySelector("#tbl tbody");
+
+thead.innerHTML="";
+tbody.innerHTML="";
+
+if(allRows.length===0)
+return;
+
+const headers=allRows[0];
+
+thead.innerHTML=
+"<tr>"
++
+headers.map(h=>
+`<th>${h}</th>`
+).join("")
++
+"</tr>";
+
+allRows.slice(1)
+
+.filter(r=>
+r.join(" ")
+.toLowerCase()
+.includes(keyword.toLowerCase())
+)
+
+.forEach(r=>{
+
+tbody.innerHTML +=
+"<tr>"
++
+r.map(c=>
+`<td>${c}</td>`
+).join("")
++
+"</tr>";
+
+});
+
+}
+
+document
+.getElementById("search")
+.addEventListener("input",e=>{
+
+render(e.target.value);
+
+});
+
+</script>
+
+</body>
+</html>
