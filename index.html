@@ -422,7 +422,7 @@ tbody tr:hover {
 
 .dc-box {
     background: #fff;
-    max-width: 1000px;
+    max-width: 1120px;
     margin: 0 auto;
     min-height: 100%;
 }
@@ -492,15 +492,16 @@ tbody tr:hover {
 }
 
 .dc-view {
-    padding: 10px;
-    background: #fff;
+    padding: 12px;
+    background: #e9ecef;
 }
 
 .dc-view img {
     display: block;
     width: 100%;
     height: auto;
-    border: 1px solid #ccc;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,.15);
 }
 
 .dc-error {
@@ -819,6 +820,17 @@ const CONGNO_FILE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgbcKx93iD
 // Sheet chi tiết công nợ phải thu (gid=1184385929)
 const DETAIL_FILE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgbcKx93iDhkfxCsuBlFEpwuex_SS1X9_PkZ-MTA-7GAUK_QRdLIcvwuYS_wFknMclAQp1meo27-mm/pub?gid=1184385929&single=true&output=csv";
 
+const COMPANY_INFO = {
+    name: "CÔNG TY TNHH TÂN ĐẠT VIỆT NAM",
+    address: "Khu Liên Phương, phường Nông Trang, Tỉnh Phú Thọ",
+    bank: "STK: 113 002 633 897 Ngân hàng Vietinbank",
+    notes: [
+        "Lưu ý:",
+        "- Công ty chỉ có một số tài khoản trên, mọi số tài khoản khác đều không hợp lệ.",
+        "- Mọi thắc mắc và khiếu nại xin vui lòng gọi về số điện thoại (kèm zalo) trực tiếp CTHDTV - GĐ: 0986.378.288 và 0941.266.688 - Mr. Nguyễn Thông."
+    ]
+};
+
 // ================= TỰ ĐỘNG CÂN CHỈNH VỊ TRÍ GHIM TIÊU ĐỀ BẢNG =================
 
 function updateStickyOffset() {
@@ -875,14 +887,14 @@ function toNumber(value) {
     return neg ? -n : n;
 }
 
-// ================= ĐỊNH DẠNG SỐ & NGÀY =================
+// ================= ĐỊNH DẠNG SỐ, NGÀY & TIỀN BẰNG CHỮ =================
 
 function formatNumber(number) {
     return new Intl.NumberFormat('vi-VN').format(number);
 }
 
 function formatCommaNumber(number) {
-    return new Intl.NumberFormat('en-US').format(number);
+    return new Intl.NumberFormat('en-US').format(Math.round(number));
 }
 
 function dateValue(s) {
@@ -894,6 +906,62 @@ function sortValue(r, key) {
     if (TEXT_KEYS.includes(key)) return (r[key] || "").toLowerCase();
     if (DATE_KEYS.includes(key)) return dateValue(r[key]);
     return toNumber(r[key]);
+}
+
+function numberToVietnameseWords(num) {
+    num = Math.round(Number(num) || 0);
+    if (num === 0) return "Không đồng chẵn";
+    const neg = num < 0 ? "Âm " : "";
+    num = Math.abs(num);
+
+    const chuSo = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+    const hangDonVi = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
+
+    function docBlockBaSo(n, coHangTram) {
+        let tram = Math.floor(n / 100);
+        let chuc = Math.floor((n % 100) / 10);
+        let donvi = n % 10;
+        let parts = [];
+
+        if (tram > 0 || coHangTram) {
+            parts.push(chuSo[tram] + " trăm");
+        }
+
+        if (chuc > 1) {
+            parts.push(chuSo[chuc] + " mươi");
+            if (donvi === 1) parts.push("mốt");
+            else if (donvi === 4) parts.push("tư");
+            else if (donvi === 5) parts.push("lăm");
+            else if (donvi > 0) parts.push(chuSo[donvi]);
+        } else if (chuc === 1) {
+            parts.push("mười");
+            if (donvi === 5) parts.push("lăm");
+            else if (donvi > 0) parts.push(chuSo[donvi]);
+        } else if (donvi > 0) {
+            if (tram > 0 || coHangTram) parts.push("linh");
+            parts.push(chuSo[donvi]);
+        }
+
+        return parts.join(" ");
+    }
+
+    let i = 0;
+    let segments = [];
+    while (num > 0) {
+        let block = num % 1000;
+        if (block > 0) {
+            let coTram = Math.floor(num / 1000) > 0;
+            let textBlock = docBlockBaSo(block, coTram);
+            let donVi = hangDonVi[i] ? " " + hangDonVi[i] : "";
+            segments.unshift(textBlock + donVi);
+        }
+        num = Math.floor(num / 1000);
+        i++;
+    }
+
+    let result = segments.join(", ").trim();
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+    return neg + result + " đồng chẵn";
 }
 
 // ================= NẠP DỮ LIỆU (CSV HOẶC EXCEL) =================
@@ -1238,357 +1306,4 @@ function showDetail(r) {
         ["Số điện thoại:", sdtDisplay, true],
         ["Địa chỉ:", r.diachi],
         ["NVKD:", r.nvkd],
-        ["Quá hạn 1 tháng:", r.qh1],
-        ["Quá hạn 2 tháng:", r.qh2],
-        ["Quá hạn 3 tháng:", r.qh3],
-        ["Tổng công nợ quá hạn:", r.tongqh],
-        ["Dư nợ cuối ngày:", r.duno],
-        ["Ngày thanh toán gần nhất:", r.thanhtoan],
-        ["Ngày mua hàng gần nhất:", r.muahang]
-    ];
-
-    fields.forEach((item, index) => {
-        if (index === 4 || index === 9) {
-            detail.appendChild(document.createElement("hr"));
-        }
-
-        const p = document.createElement("p");
-        const label = document.createElement("span");
-        label.className = "label";
-        label.textContent = item[0] + " ";
-        p.appendChild(label);
-
-        if (item[2] && item[1] !== "Chưa cập nhật") {
-            const link = document.createElement("a");
-            link.href = "tel:" + item[1].replace(/[^0-9+]/g, '');
-            link.className = "phone-link";
-            link.textContent = item[1];
-            p.appendChild(link);
-        } else {
-            p.appendChild(document.createTextNode(item[1] || "Chưa cập nhật"));
-        }
-
-        detail.appendChild(p);
-    });
-
-    const dcBtn = document.createElement("button");
-    dcBtn.type = "button";
-    dcBtn.className = "dc-btn-open";
-    dcBtn.textContent = "Đối chiếu công nợ";
-    dcBtn.onclick = () => openRecon(r);
-    detail.appendChild(dcBtn);
-}
-
-function closeModal() {
-    document.getElementById("modal").style.display = "none";
-}
-
-window.addEventListener("click", e => {
-    const modal = document.getElementById("modal");
-    const dcModal = document.getElementById("dcModal");
-    if (e.target === modal) closeModal();
-    if (e.target === dcModal) closeRecon();
-});
-
-// ================= ĐỐI CHIẾU CÔNG NỢ (chitietcongnophaithu) =================
-
-let currentCustomer = null;
-let currentDataUrl = "";
-
-function showToast(msg) {
-    const toast = document.getElementById("dcToast");
-    toast.textContent = msg;
-    toast.style.display = "block";
-    clearTimeout(showToast._timer);
-    showToast._timer = setTimeout(() => {
-        toast.style.display = "none";
-    }, 3000);
-}
-
-async function ensureDetailRows() {
-    if (detailRows) return detailRows;
-
-    const res = await fetch(`${DETAIL_FILE}&t=${Date.now()}`);
-    if (!res.ok) {
-        throw new Error("Không tải được sheet chi tiết công nợ phải thu");
-    }
-    const text = await res.text();
-    detailRows = csvToRows(text);
-    return detailRows;
-}
-
-function parseDateAny(val) {
-    const s = String(val || "").trim();
-    if (!s) return null;
-
-    // dd/mm/yyyy hoặc dd-mm-yyyy
-    let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if (m) {
-        return new Date(+m[3], +m[2] - 1, +m[1]);
-    }
-
-    // yyyy-mm-dd
-    m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-    if (m) {
-        return new Date(+m[1], +m[2] - 1, +m[3]);
-    }
-
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
-}
-
-function toInputDate(d) {
-    if (!d || isNaN(d.getTime())) return "";
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-}
-
-function formatDateVN(d) {
-    if (!d || isNaN(d.getTime())) return "";
-    const day = String(d.getDate()).padStart(2, "0");
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const y = d.getFullYear();
-    return `${day}/${m}/${y}`;
-}
-
-function extractCustomerTransactions(rows, customer) {
-    const targetMa = String(customer.ma || "").trim().toLowerCase();
-    const targetTen = String(customer.ten || "").trim().toLowerCase();
-    const tx = [];
-
-    for (const r of rows) {
-        if (!Array.isArray(r) || r.length < 2) continue;
-
-        const c0 = String(r[0] || "").trim().toLowerCase();
-        const c1 = String(r[1] || "").trim().toLowerCase();
-        const c2 = String(r[2] || "").trim().toLowerCase();
-
-        // Bỏ qua dòng tiêu đề hoặc tổng cộng
-        if (c0.includes("mã") || c1.includes("tổng cộng")) continue;
-
-        const matchMa = targetMa && (c0 === targetMa || c1 === targetMa);
-        const matchTen = targetTen && (c1 === targetTen || c2 === targetTen);
-        if (!matchMa && !matchTen) continue;
-
-        // Tìm ngày và các số phát sinh/ghi có/dư nợ trên dòng
-        let dt = null;
-        for (const cell of r) {
-            const parsed = parseDateAny(cell);
-            if (parsed) {
-                dt = parsed;
-                break;
-            }
-        }
-
-        const nums = [];
-        for (let i = 1; i < r.length; i++) {
-            const raw = String(r[i] || "").trim();
-            if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(raw)) continue;
-            const n = toNumber(raw);
-            if (n !== 0) nums.push(n);
-        }
-
-        tx.push({
-            date: dt,
-            dateStr: dt ? formatDateVN(dt) : String(r[2] || ""),
-            desc: String(r[3] || r[2] || "Phát sinh công nợ").trim(),
-            debit: nums[0] || 0,
-            credit: nums[1] || 0,
-            balance: nums.length >= 3 ? nums[nums.length - 1] : (nums[0] || 0),
-            raw: r
-        });
-    }
-
-    return tx;
-}
-
-function renderReconImage(customer, transactions, fromDateStr) {
-    const fromDate = fromDateStr ? new Date(fromDateStr + "T00:00:00") : null;
-    const filtered = fromDate
-        ? transactions.filter(t => !t.date || t.date >= fromDate)
-        : transactions;
-
-    const canvas = document.createElement("canvas");
-    const width = 1000;
-    const rowHeight = 44;
-    const headerHeight = 230;
-    const footerHeight = 90;
-    const height = Math.max(420, headerHeight + Math.max(1, filtered.length) * rowHeight + footerHeight);
-
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.fillStyle = "#0f4c81";
-    ctx.font = "bold 28px Arial";
-    ctx.fillText("BẢNG ĐỐI CHIẾU CÔNG NỢ KHÁCH HÀNG", 40, 52);
-
-    ctx.fillStyle = "#222222";
-    ctx.font = "bold 20px Arial";
-    ctx.fillText(`Khách hàng: ${customer.ten || ""} (${customer.ma || ""})`, 40, 92);
-
-    ctx.font = "18px Arial";
-    ctx.fillStyle = "#444444";
-    ctx.fillText(`Địa chỉ: ${customer.diachi || "Chưa cập nhật"}`, 40, 122);
-    ctx.fillText(
-        `Từ ngày: ${fromDate ? formatDateVN(fromDate) : "Tất cả"}   |   Dư nợ hiện tại: ${customer.duno || "0"}`,
-        40,
-        152
-    );
-
-    // Tiêu đề bảng chi tiết
-    const tableTop = 180;
-    ctx.fillStyle = "#0f4c81";
-    ctx.fillRect(40, tableTop, width - 80, 42);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 17px Arial";
-    ctx.fillText("Ngày", 52, tableTop + 27);
-    ctx.fillText("Nội dung / Chứng từ", 170, tableTop + 27);
-    ctx.fillText("Phát sinh / Nợ", 630, tableTop + 27);
-    ctx.fillText("Dư nợ", 810, tableTop + 27);
-
-    let y = tableTop + 42;
-    if (filtered.length === 0) {
-        ctx.fillStyle = "#666666";
-        ctx.font = "18px Arial";
-        ctx.fillText("Không có dòng chi tiết phù hợp trong kỳ đã chọn.", 52, y + 30);
-        y += rowHeight;
-    } else {
-        filtered.forEach((item, idx) => {
-            if (idx % 2 === 1) {
-                ctx.fillStyle = "#f4f7fb";
-                ctx.fillRect(40, y, width - 80, rowHeight);
-            }
-            ctx.strokeStyle = "#dddddd";
-            ctx.strokeRect(40, y, width - 80, rowHeight);
-
-            ctx.fillStyle = "#222222";
-            ctx.font = "17px Arial";
-            ctx.fillText(item.dateStr || "-", 52, y + 28);
-            ctx.fillText(String(item.desc || "").slice(0, 42), 170, y + 28);
-
-            ctx.textAlign = "right";
-            ctx.fillText(item.debit ? formatCommaNumber(item.debit) : "-", 750, y + 28);
-            ctx.fillText(item.balance ? formatCommaNumber(item.balance) : "-", 945, y + 28);
-            ctx.textAlign = "left";
-
-            y += rowHeight;
-        });
-    }
-
-    ctx.fillStyle = "#0f4c81";
-    ctx.font = "bold 18px Arial";
-    ctx.fillText(`Tổng số dòng chi tiết: ${filtered.length}`, 40, y + 36);
-
-    currentDataUrl = canvas.toDataURL("image/png");
-    const img = document.getElementById("dcImg");
-    img.src = currentDataUrl;
-    img.style.display = "block";
-
-    document.getElementById("dcDownload").disabled = false;
-    document.getElementById("dcZalo").disabled = false;
-}
-
-async function generateRecon() {
-    if (!currentCustomer) return;
-
-    const info = document.getElementById("dcInfo");
-    const errBox = document.getElementById("dcError");
-    const errText = document.getElementById("dcErrorText");
-    const fromInput = document.getElementById("dcFrom");
-
-    errBox.style.display = "none";
-    info.textContent = "Đang tải dữ liệu chi tiết công nợ phải thu...";
-
-    try {
-        const rows = await ensureDetailRows();
-        const tx = extractCustomerTransactions(rows, currentCustomer);
-
-        if (!fromInput.value && tx.length > 0) {
-            const dates = tx.map(t => t.date).filter(Boolean).sort((a, b) => a - b);
-            if (dates.length > 0) {
-                fromInput.value = toInputDate(dates[0]);
-            }
-        }
-
-        renderReconImage(currentCustomer, tx, fromInput.value);
-        info.textContent = `Khách hàng: ${currentCustomer.ten} — Tìm thấy ${tx.length} dòng chi tiết từ sheet chitietcongnophaithu.`;
-    } catch (err) {
-        info.textContent = "Không thể tự động tải dữ liệu chi tiết.";
-        errText.textContent = `Lỗi tải chi tiết công nợ: ${err.message}. Bạn có thể chọn file CSV thủ công bên dưới:`;
-        errBox.style.display = "block";
-    }
-}
-
-function openRecon(customer) {
-    currentCustomer = customer;
-    document.getElementById("dcFrom").value = "";
-    document.getElementById("dcImg").style.display = "none";
-    document.getElementById("dcDownload").disabled = true;
-    document.getElementById("dcZalo").disabled = true;
-    document.getElementById("dcModal").style.display = "block";
-    generateRecon();
-}
-
-function closeRecon() {
-    document.getElementById("dcModal").style.display = "none";
-}
-
-document.getElementById("dcClose").addEventListener("click", closeRecon);
-document.getElementById("dcFrom").addEventListener("change", generateRecon);
-document.getElementById("dcAuto").addEventListener("click", () => {
-    document.getElementById("dcFrom").value = "";
-    generateRecon();
-});
-
-document.getElementById("dcCsv").addEventListener("change", e => {
-    const f = e.target.files[0];
-    if (!f || !currentCustomer) return;
-    f.text().then(t => {
-        detailRows = csvToRows(t);
-        generateRecon();
-    });
-});
-
-document.getElementById("dcDownload").addEventListener("click", () => {
-    if (!currentDataUrl || !currentCustomer) return;
-    const a = document.createElement("a");
-    a.href = currentDataUrl;
-    a.download = `Doi_chieu_cong_no_${(currentCustomer.ma || currentCustomer.ten || "KH").replace(/\s+/g, "_")}.png`;
-    a.click();
-    showToast("Đã tải ảnh bảng đối chiếu công nợ");
-});
-
-document.getElementById("dcZalo").addEventListener("click", async () => {
-    if (!currentDataUrl || !currentCustomer) return;
-    try {
-        const res = await fetch(currentDataUrl);
-        const blob = await res.blob();
-        const file = new File([blob], "doi-chieu-cong-no.png", { type: "image/png" });
-
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                title: `Đối chiếu công nợ - ${currentCustomer.ten}`,
-                text: `Bảng đối chiếu công nợ khách hàng ${currentCustomer.ten}`,
-                files: [file]
-            });
-            return;
-        }
-    } catch (_) {}
-
-    const a = document.createElement("a");
-    a.href = currentDataUrl;
-    a.download = `Doi_chieu_cong_no_${(currentCustomer.ma || "KH").replace(/\s+/g, "_")}.png`;
-    a.click();
-    showToast("Đã tải ảnh — mở Zalo và gửi ảnh vừa tải cho khách hàng.");
-});
-
-</script>
-</body>
-</html>
+        ["Quá
