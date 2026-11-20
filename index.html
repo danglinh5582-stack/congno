@@ -6,7 +6,7 @@
 <title>Tra cứu công nợ khách hàng</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <style>
 
@@ -807,7 +807,7 @@ tbody tr:hover {
             <label>Từ ngày: <input type="date" id="dcFrom"></label>
             <button type="button" id="dcAuto">Tự động</button>
             <span class="spacer"></span>
-            <button type="button" id="dcExcel" class="excel-btn" disabled title="Tải biên bản Excel có bố cục giống hệt ảnh, tối ưu để in A4">Tải Excel</button>
+            <button type="button" id="dcPdf" class="excel-btn" disabled title="Tải biên bản PDF đúng khổ giấy A4, sẵn sàng in">Tải file PDF</button>
             <button type="button" id="dcDownload" disabled>Tải ảnh</button>
             <button type="button" id="dcZalo" class="zalo" disabled>Chia sẻ Zalo</button>
             <button type="button" id="dcClose" class="close-btn">Đóng</button>
@@ -1919,114 +1919,68 @@ async function drawRecon(d, custName) {
     return cv;
 }
 
-// ---------- Xuất file Excel trình bày y như ảnh & sẵn sàng in ----------
+// ---------- Xuất PDF đúng bố cục ảnh, khổ A4, sẵn sàng in ----------
 
-async function exportReconExcel() {
+async function exportReconPdf() {
     if (!reconState.model || !reconState.cust) return;
 
-    const btn = byId("dcExcel");
+    const btn = byId("dcPdf");
     const oldText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = "Đang tạo Excel...";
+    btn.textContent = "Đang tạo PDF...";
 
     try {
-        if (typeof ExcelJS === "undefined") {
-            throw new Error("Không tải được thư viện ExcelJS. Hãy kiểm tra kết nối Internet rồi tải lại trang.");
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            throw new Error("Không tải được thư viện tạo PDF. Hãy kiểm tra kết nối Internet rồi tải lại trang.");
         }
 
         const d = reconState.model;
         const cust = reconState.cust;
 
-        // Dùng chính canvas đang hiển thị trên màn hình làm nội dung Excel.
-        // Nhờ vậy QR, bố cục, màu sắc, đường kẻ, chữ ký và các dòng ghi chú
-        // giống hệt ảnh biên bản, không phải dựng lại bằng một bảng Excel khác.
+        // Lấy đúng canvas đang dùng để hiển thị biên bản: giữ nguyên QR,
+        // phông chữ, màu sắc, đường kẻ, chữ ký và các ghi chú.
         const canvas = await drawRecon(d, cust.ten);
         const dataUrl = canvas.toDataURL("image/png");
 
         const nowObj = new Date();
-        const printDate = pad2(nowObj.getDate()) + "/" +
-            pad2(nowObj.getMonth() + 1) + "/" +
-            pad2(nowObj.getFullYear() % 100);
+        const printDate = pad2(nowObj.getDate()) + "-" +
+            pad2(nowObj.getMonth() + 1) + "-" +
+            pad2(nowObj.getFullYear());
 
-        const wb = new ExcelJS.Workbook();
-        wb.creator = COMPANY.name;
-        wb.subject = "Biên bản đối chiếu và xác nhận công nợ";
-        wb.title = "Biên bản đối chiếu công nợ - " + cust.ten;
-        wb.created = new Date();
-
-        const ws = wb.addWorksheet("BienBanDoiChieu", {
-            properties: { defaultRowHeight: 30 },
-            pageSetup: {
-                paperSize: 9,                 // A4
-                orientation: "portrait",
-                fitToPage: true,
-                fitToWidth: 1,
-                fitToHeight: 1,               // In trọn biên bản trên một trang
-                horizontalDpi: 300,
-                verticalDpi: 300,
-                margins: {
-                    left: 0.2,
-                    right: 0.2,
-                    top: 0.2,
-                    bottom: 0.2,
-                    header: 0,
-                    footer: 0
-                }
-            },
-            views: [{ showGridLines: false }]
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4",
+            compress: true
         });
 
-        // Tạo vùng in đủ rộng/cao để chứa toàn bộ ảnh.
-        // 26 cột xấp xỉ 1.000 px; chiều cao chia thành nhiều hàng để tránh
-        // giới hạn chiều cao tối đa của một hàng Excel.
-        const imageWidth = 980;
-        const imageHeight = Math.round(canvas.height * imageWidth / canvas.width);
-        const colCount = 26;
-        const rowHeight = 30;
-        const rowCount = Math.max(1, Math.ceil(imageHeight * 0.75 / rowHeight));
+        // Đặt toàn bộ biên bản vào một trang A4, giữ nguyên tỷ lệ ảnh,
+        // không cắt nội dung và không tràn ra ngoài vùng in.
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const margin = 5;
+        const maxW = pageW - margin * 2;
+        const maxH = pageH - margin * 2;
+        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+        const imgW = canvas.width * ratio;
+        const imgH = canvas.height * ratio;
+        const x = (pageW - imgW) / 2;
+        const y = (pageH - imgH) / 2;
 
-        ws.columns = Array.from({ length: colCount }, () => ({ width: 5.5 }));
-        for (let r = 1; r <= rowCount; r++) {
-            ws.getRow(r).height = rowHeight;
-        }
-
-        const lastCol = "Z";
-        ws.pageSetup.printArea = `A1:${lastCol}${rowCount}`;
-        ws.pageSetup.printTitlesRow = "1:1";
-
-        const imageId = wb.addImage({
-            base64: dataUrl,
-            extension: "png"
+        pdf.addImage(dataUrl, "PNG", x, y, imgW, imgH, undefined, "FAST");
+        pdf.setProperties({
+            title: "Biên bản đối chiếu công nợ - " + cust.ten,
+            subject: "Biên bản đối chiếu và xác nhận công nợ",
+            author: COMPANY.name,
+            creator: "Tra cứu công nợ"
         });
 
-        ws.addImage(imageId, {
-            tl: { col: 0, row: 0 },
-            ext: { width: imageWidth, height: imageHeight }
-        });
-
-        // Không lặp tiêu đề bảng vì toàn bộ biên bản là một hình ảnh duy nhất.
-        ws.headerFooter.oddHeader = "";
-        ws.headerFooter.oddFooter = "";
-
-        const buffer = await wb.xlsx.writeBuffer();
-        const blob = new Blob([buffer], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        });
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "DoiChieuCongNo_" + slug(cust.ten) + "_" +
-            printDate.replace(/\//g, "-") + ".xlsx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 15000);
-
-        showToast("Đã tạo file Excel. Mở file và chọn In để in biên bản.");
+        pdf.save("DoiChieuCongNo_" + slug(cust.ten) + "_" + printDate + ".pdf");
+        showToast("Đã tải file PDF khổ A4. Mở file PDF và in ở chế độ Khổ giấy A4, Tỷ lệ vừa trang.");
     } catch (err) {
-        console.error("Lỗi xuất Excel:", err);
-        alert("Không xuất được file Excel: " + (err && err.message ? err.message : err));
+        console.error("Lỗi xuất PDF:", err);
+        alert("Không xuất được file PDF: " + (err && err.message ? err.message : err));
     } finally {
         btn.disabled = false;
         btn.textContent = oldText;
@@ -2057,7 +2011,7 @@ async function openRecon(r) {
     reconState = { cust: r, from: "", blob: null, fileName: "", model: null };
     byId("dcModal").style.display = "block";
     byId("dcImg").style.display = "none";
-    byId("dcExcel").disabled = true;
+    byId("dcPdf").disabled = true;
     byId("dcDownload").disabled = true;
     byId("dcZalo").disabled = true;
     byId("dcFrom").value = "";
@@ -2080,7 +2034,7 @@ async function refreshRecon() {
 
     if (!rows || !rows.length) {
         byId("dcImg").style.display = "none";
-        byId("dcExcel").disabled = true;
+        byId("dcPdf").disabled = true;
         byId("dcInfo").textContent = "Không tìm thấy khách \"" + r.ten + "\" (mã " + r.ma + ") trong file chi tiết công nợ.";
         return;
     }
@@ -2088,7 +2042,7 @@ async function refreshRecon() {
     const fromYMD = reconState.from ? toYMD(reconState.from) : 0;
     const d = buildRecon(rows, fromYMD);
     reconState.model = d;
-    byId("dcExcel").disabled = false;
+    byId("dcPdf").disabled = false;
 
     byId("dcFrom").value = ymdToInput(d.startYMD);
 
@@ -2174,7 +2128,7 @@ byId("dcAuto").addEventListener("click", () => {
     reconState.from = "";
     if (detailIndex && reconState.cust) refreshRecon();
 });
-byId("dcExcel").addEventListener("click", exportReconExcel);
+byId("dcPdf").addEventListener("click", exportReconPdf);
 byId("dcDownload").addEventListener("click", downloadRecon);
 byId("dcZalo").addEventListener("click", shareZalo);
 byId("dcClose").addEventListener("click", closeRecon);
