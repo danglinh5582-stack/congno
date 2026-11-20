@@ -807,7 +807,7 @@ tbody tr:hover {
             <label>Từ ngày: <input type="date" id="dcFrom"></label>
             <button type="button" id="dcAuto">Tự động</button>
             <span class="spacer"></span>
-            <button type="button" id="dcPdf" class="excel-btn" disabled title="Tải biên bản PDF đúng khổ giấy A4, sẵn sàng in">Tải file PDF</button>
+            <button type="button" id="dcPdf" class="excel-btn" disabled title="Tải biên bản PDF khổ A4 ngang, căn sát đầu trang, sẵn sàng in">Tải file PDF</button>
             <button type="button" id="dcDownload" disabled>Tải ảnh</button>
             <button type="button" id="dcZalo" class="zalo" disabled>Chia sẻ Zalo</button>
             <button type="button" id="dcClose" class="close-btn">Đóng</button>
@@ -1949,24 +1949,27 @@ async function exportReconPdf() {
 
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({
-            orientation: "portrait",
+            orientation: "landscape",
             unit: "mm",
             format: "a4",
             compress: true
         });
 
-        // Đặt toàn bộ biên bản vào một trang A4, giữ nguyên tỷ lệ ảnh,
-        // không cắt nội dung và không tràn ra ngoài vùng in.
+        // Khổ A4 ngang. Phóng biên bản tối đa theo cả chiều rộng và chiều cao,
+        // căn sát đầu trang để không xuất hiện khoảng trắng lớn phía trên.
+        // Vẫn giữ nguyên tỷ lệ ảnh và chừa lề in an toàn.
         const pageW = pdf.internal.pageSize.getWidth();
         const pageH = pdf.internal.pageSize.getHeight();
-        const margin = 5;
-        const maxW = pageW - margin * 2;
-        const maxH = pageH - margin * 2;
+        const marginX = 5;
+        const marginTop = 3;
+        const marginBottom = 3;
+        const maxW = pageW - marginX * 2;
+        const maxH = pageH - marginTop - marginBottom;
         const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
         const imgW = canvas.width * ratio;
         const imgH = canvas.height * ratio;
         const x = (pageW - imgW) / 2;
-        const y = (pageH - imgH) / 2;
+        const y = marginTop;
 
         pdf.addImage(dataUrl, "PNG", x, y, imgW, imgH, undefined, "FAST");
         pdf.setProperties({
@@ -1977,7 +1980,7 @@ async function exportReconPdf() {
         });
 
         pdf.save("DoiChieuCongNo_" + slug(cust.ten) + "_" + printDate + ".pdf");
-        showToast("Đã tải file PDF khổ A4. Mở file PDF và in ở chế độ Khổ giấy A4, Tỷ lệ vừa trang.");
+        showToast("Đã tải PDF khổ A4 ngang. Khi in, chọn hướng giấy Ngang (Landscape) và Tỷ lệ vừa trang.");
     } catch (err) {
         console.error("Lỗi xuất PDF:", err);
         alert("Không xuất được file PDF: " + (err && err.message ? err.message : err));
