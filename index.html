@@ -8,6 +8,9 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
+
+/* ================= GIAO DIỆN CHUNG ================= */
+
 * {
     box-sizing: border-box;
 }
@@ -22,8 +25,11 @@ body {
 
 .container {
     width: 100%;
+    max-width: none;
     margin: auto;
 }
+
+/* ================= KHU VỰC GHIM ĐẦU TRANG ================= */
 
 .sticky-header {
     position: sticky;
@@ -34,21 +40,30 @@ body {
     padding-bottom: 10px;
 }
 
+/* ================= TIÊU ĐỀ ================= */
+
 h1 {
     text-align: center;
     color: #0f4c81;
-    font-size: 36px;
+    font-size: 37px;
     font-weight: bold;
-    margin: 5px 0 18px;
+    margin: 5px 0 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
+/* ================= KHUNG ================= */
+
 .card {
-    background: #fff;
+    background: white;
     padding: 18px;
     border-radius: 10px;
     margin-bottom: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,.1);
 }
+
+/* ================= TÌM KIẾM ================= */
 
 .search-box {
     display: flex;
@@ -58,12 +73,12 @@ h1 {
 }
 
 input, select {
-    padding: 12px 15px;
+    padding: 14px 16px;
     border: 1px solid #aaa;
     border-radius: 7px;
-    min-width: 260px;
-    font-size: 20px;
-    background: #fff;
+    min-width: 300px;
+    font-size: 22px;
+    background: white;
     color: #222;
 }
 
@@ -71,11 +86,12 @@ input, select {
     flex: 1;
 }
 
+/* Ô tích chọn lọc */
 .check-filter {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 20px;
+    font-size: 22px;
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
@@ -83,106 +99,153 @@ input, select {
 
 .check-filter input[type=checkbox] {
     min-width: 0;
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     padding: 0;
     cursor: pointer;
+}
+
+/* Ô chọn file Excel */
+.file-pick {
+    font-size: 20px;
 }
 
 .file-pick input[type=file] {
     min-width: 0;
     width: auto;
     padding: 8px;
-    font-size: 16px;
+    font-size: 17px;
 }
+
+/* ================= THỐNG KÊ ================= */
 
 .stats {
     display: flex;
-    gap: 14px;
+    gap: 15px;
     flex-wrap: wrap;
     margin-bottom: 6px;
 }
 
 .stat {
     flex: 1;
-    min-width: 190px;
+    min-width: 220px;
     background: #0f4c81;
-    color: #fff;
-    padding: 14px 18px;
+    color: white;
+    padding: 16px 20px;
     border-radius: 10px;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: bold;
 }
 
 .stat h2 {
-    font-size: 30px;
-    margin: 8px 0 0;
+    font-size: 34px;
+    margin: 10px 0 2px;
     font-weight: bold;
 }
 
+/* ================= BẢNG DỮ LIỆU ================= */
+
 .table-container {
+    overflow: visible;
     width: 100%;
-    overflow-x: auto;
+    padding-top: 0;
 }
 
 table {
     width: 100%;
-    min-width: 1450px;
+    min-width: 1500px;
     border-collapse: separate;
     border-spacing: 0;
-    background: #fff;
+    table-layout: fixed;
+    background: white;
 }
 
 thead th {
     background: #0f4c81;
-    color: #fff;
+    color: white;
     position: sticky;
-    top: var(--sticky-offset, 270px);
+    top: var(--sticky-offset, 290px);
     z-index: 100;
-    font-size: 20px;
+    font-size: 23px;
     font-weight: bold;
-    text-align: center;
-    padding: 12px 10px;
-    border-right: 1px solid #ccc;
-    border-bottom: 1px solid #ccc;
+    text-align: center !important;
+    vertical-align: middle;
+    white-space: normal;
+    box-shadow: 0 2px 3px rgba(0,0,0,.15);
     cursor: pointer;
     user-select: none;
-}
-
-thead th:first-child {
-    border-left: 1px solid #ccc;
 }
 
 thead th:hover {
     background: #0b3961;
 }
 
-td {
-    padding: 12px 10px;
+th, td {
+    padding: 14px 12px;
     border-right: 1px solid #ccc;
     border-bottom: 1px solid #ccc;
-    font-size: 20px;
-    line-height: 1.45;
+    font-size: 23px;
+    line-height: 1.5;
     vertical-align: middle;
 }
 
+th:first-child,
 td:first-child {
     border-left: 1px solid #ccc;
 }
 
-td:nth-child(4), td:nth-child(5), td:nth-child(6), td:nth-child(7), td:nth-child(8) {
+thead th {
+    border-top: 1px solid #ccc;
+}
+
+td:nth-child(1) {
+    width: 190px;
+    text-align: left;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+th:nth-child(1) { width: 190px; }
+
+td:nth-child(2) {
+    width: 190px;
+    text-align: left;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+th:nth-child(2) { width: 190px; }
+
+td:nth-child(3) {
+    width: 155px;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+th:nth-child(3) { width: 155px; }
+
+td:nth-child(4),
+td:nth-child(5),
+td:nth-child(6) {
+    width: 125px;
     text-align: right;
     white-space: nowrap;
 }
+th:nth-child(4), th:nth-child(5), th:nth-child(6) { width: 125px; }
 
-td:nth-child(7), td:nth-child(8) {
+td:nth-child(7),
+td:nth-child(8) {
+    width: 155px;
+    text-align: right;
+    white-space: nowrap;
     font-weight: bold;
 }
+th:nth-child(7), th:nth-child(8) { width: 155px; }
 
-td:nth-child(9), td:nth-child(10) {
+td:nth-child(9),
+td:nth-child(10) {
+    width: 160px;
     text-align: center;
     white-space: nowrap;
 }
+th:nth-child(9), th:nth-child(10) { width: 160px; }
 
 tbody tr:nth-child(even) {
     background: #f0f5fb;
@@ -193,49 +256,81 @@ tbody tr:hover {
     cursor: pointer;
 }
 
+/* ================= THÔNG BÁO ================= */
+
 .empty-message {
     text-align: center;
-    padding: 28px;
-    font-size: 22px;
+    padding: 30px;
+    font-size: 25px;
     color: #666;
 }
 
+/* ================= DANH SÁCH ĐIỆN THOẠI ================= */
+
 .mobile-list {
     display: none;
+}
+
+.mobile-table-card {
+    background: white;
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    overflow-x: auto;
 }
 
 .mobile-table {
     width: 100%;
     min-width: 0;
     border-collapse: collapse;
-    background: #fff;
+    table-layout: auto;
+    background: white;
 }
 
-.mobile-table th, .mobile-table td {
-    padding: 10px 8px;
-    border: 1px solid #d1d5db;
-    font-size: 17px;
-}
-
-.mobile-table th {
+.mobile-table thead th {
     position: static;
     background: #0f4c81;
-    color: #fff;
+    color: white;
+    font-size: 18px;
+    padding: 10px 8px;
+    text-align: center !important;
+    border: 1px solid #0b3961;
+    box-shadow: none;
 }
 
-.mobile-table td:nth-child(2) {
+.mobile-table tbody td {
+    font-size: 18px;
+    line-height: 1.4;
+    padding: 12px 8px;
+    border: 1px solid #d1d5db;
+    vertical-align: middle;
+}
+
+.mobile-table tbody td:nth-child(1) {
+    width: auto;
+    text-align: left;
+    font-weight: bold;
+    color: #0f4c81;
+    overflow-wrap: anywhere;
+}
+
+.mobile-table tbody td:nth-child(2) {
+    width: auto;
     text-align: right;
+    white-space: nowrap;
     color: #c0392b;
     font-weight: bold;
-    white-space: nowrap;
 }
 
-.mobile-table td:nth-child(3) {
+.mobile-table tbody td:nth-child(3) {
+    width: auto;
     text-align: right;
+    white-space: nowrap;
     color: #0f4c81;
     font-weight: bold;
-    white-space: nowrap;
 }
+
+/* ================= CHI TIẾT KHÁCH HÀNG ================= */
 
 .modal {
     display: none;
@@ -248,25 +343,46 @@ tbody tr:hover {
 }
 
 .modal-content {
-    background: #fff;
-    max-width: 780px;
+    background: white;
+    max-width: 800px;
     width: 100%;
-    margin: 25px auto;
-    padding: 26px;
+    margin: 30px auto;
+    padding: 28px;
     border-radius: 12px;
-    font-size: 22px;
-    line-height: 1.65;
+    font-size: 25px;
+    line-height: 1.7;
 }
 
 .modal-content h2 {
-    font-size: 30px;
+    font-size: 32px;
     color: #0f4c81;
-    margin-top: 6px;
+    margin-top: 10px;
+}
+
+.modal-content p {
+    margin: 14px 0;
+    overflow-wrap: anywhere;
+}
+
+.modal-content hr {
+    border: 0;
+    border-top: 1px solid #ddd;
+    margin: 20px 0;
+}
+
+.phone-link {
+    color: #0f4c81;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.phone-link:hover {
+    text-decoration: underline;
 }
 
 .close {
     float: right;
-    font-size: 38px;
+    font-size: 41px;
     font-weight: bold;
     cursor: pointer;
     color: #555;
@@ -278,22 +394,18 @@ tbody tr:hover {
     color: #333;
 }
 
-.phone-link {
-    color: #0f4c81;
-    font-weight: bold;
-    text-decoration: none;
-}
+/* ================= ĐỐI CHIẾU CÔNG NỢ ================= */
 
 .dc-btn-open {
     display: block;
     width: 100%;
-    margin-top: 20px;
+    margin-top: 22px;
     padding: 14px;
     border: 0;
     border-radius: 8px;
     background: #0f4c81;
     color: #fff;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: bold;
     cursor: pointer;
 }
@@ -305,12 +417,12 @@ tbody tr:hover {
 .dc-modal {
     z-index: 1100;
     padding: 0;
-    background: rgba(0,0,0,.7);
+    background: rgba(0,0,0,.65);
 }
 
 .dc-box {
     background: #fff;
-    max-width: 1120px;
+    max-width: 1000px;
     margin: 0 auto;
     min-height: 100%;
 }
@@ -318,7 +430,7 @@ tbody tr:hover {
 .dc-bar {
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 5;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -326,7 +438,7 @@ tbody tr:hover {
     padding: 10px 12px;
     background: #0f4c81;
     color: #fff;
-    font-size: 17px;
+    font-size: 18px;
 }
 
 .dc-bar .spacer {
@@ -343,14 +455,14 @@ tbody tr:hover {
     min-width: 0 !important;
     width: auto !important;
     padding: 6px 8px !important;
-    font-size: 16px !important;
+    font-size: 18px !important;
 }
 
 .dc-bar button {
-    padding: 8px 13px;
+    padding: 9px 14px;
     border: 0;
     border-radius: 6px;
-    font-size: 17px;
+    font-size: 18px;
     font-weight: bold;
     cursor: pointer;
     background: #fff;
@@ -375,8 +487,20 @@ tbody tr:hover {
 .dc-info {
     padding: 8px 14px;
     font-size: 16px;
-    color: #444;
+    color: #555;
     background: #f3f4f6;
+}
+
+.dc-view {
+    padding: 10px;
+    background: #fff;
+}
+
+.dc-view img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid #ccc;
 }
 
 .dc-error {
@@ -387,38 +511,41 @@ tbody tr:hover {
     border-radius: 8px;
     background: #fdecea;
     color: #7a1f16;
-    font-size: 18px;
+    font-size: 19px;
+    line-height: 1.5;
 }
 
 .dc-error input[type=file] {
     min-width: 0;
     width: 100%;
     margin-top: 10px;
-    font-size: 16px;
+    font-size: 17px;
     background: #fff;
 }
 
-.dc-view {
-    padding: 14px;
-    background: #e5e7eb;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
+@media (max-width: 768px) {
+    .check-filter.file-pick {
+        flex-wrap: wrap;
+        white-space: normal;
+    }
 
-.dc-part-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: #0f4c81;
-    margin-bottom: 6px;
-}
+    .file-pick input[type=file] {
+        width: 100%;
+        max-width: 100%;
+    }
 
-.dc-view img {
-    display: block;
-    width: 100%;
-    height: auto;
-    background: #fff;
-    box-shadow: 0 2px 10px rgba(0,0,0,.15);
+    .dc-bar {
+        font-size: 16px;
+    }
+
+    .dc-bar button {
+        padding: 8px 10px;
+        font-size: 16px;
+    }
+
+    .dc-view {
+        padding: 6px;
+    }
 }
 
 .dc-toast {
@@ -431,38 +558,151 @@ tbody tr:hover {
     border-radius: 8px;
     background: #222;
     color: #fff;
-    font-size: 17px;
+    font-size: 18px;
+    line-height: 1.4;
     z-index: 1300;
     display: none;
 }
 
+/* ================= ĐIỆN THOẠI ================= */
+
 @media (max-width: 768px) {
-    body { padding: 0 10px 10px 10px; }
-    .sticky-header { position: static; }
-    h1 { font-size: 26px; }
-    input, select { width: 100%; min-width: 0; font-size: 18px; }
-    .check-filter { font-size: 18px; white-space: normal; }
-    .table-container { display: none; }
-    .mobile-list { display: block; }
+
+    body {
+        padding: 0 10px 10px 10px;
+    }
+
+    .sticky-header {
+        position: static;
+        padding-top: 10px;
+    }
+
+    h1 {
+        font-size: 28px;
+        line-height: 1.35;
+        margin: 8px 0 14px;
+    }
+
+    .card {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .search-box {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    input, select {
+        width: 100%;
+        min-width: 0;
+        padding: 12px 14px;
+        font-size: 19px;
+    }
+
+    .check-filter {
+        font-size: 19px;
+    }
+
+    .check-filter input[type=checkbox] {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+    }
+
+    .stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .stat {
+        min-width: 0;
+        padding: 12px 16px;
+        font-size: 19px;
+    }
+
+    .stat h2 {
+        font-size: 28px;
+        margin: 6px 0 0;
+    }
+
+    .table-container {
+        display: none;
+    }
+
+    .mobile-list {
+        display: block;
+    }
+
+    .mobile-table thead th {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .modal {
+        padding: 10px;
+    }
+
+    .modal-content {
+        margin: 10px auto;
+        padding: 20px;
+        font-size: 21px;
+    }
+
+    .modal-content h2 {
+        font-size: 25px;
+    }
+
 }
+
+@media (max-width: 380px) {
+
+    h1 {
+        font-size: 24px;
+    }
+
+    .stat h2 {
+        font-size: 25px;
+    }
+
+    .mobile-table thead th,
+    .mobile-table tbody td {
+        font-size: 16px;
+        padding: 10px 6px;
+    }
+
+}
+
 </style>
 </head>
+
 <body>
 
 <div class="container">
+
+    <!-- KHU VỰC ĐƯỢC GHIM CỐ ĐỊNH KHI CUỘN -->
     <div class="sticky-header" id="stickyHeader">
+
         <h1>TRA CỨU CÔNG NỢ KHÁCH HÀNG</h1>
 
-        <div class="card" style="margin-bottom:12px;">
+        <!-- TÌM KIẾM VÀ LỌC -->
+        <div class="card" style="margin-bottom: 12px;">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Tìm tên KH, mã KH, SĐT, địa chỉ hoặc NVKD">
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Tìm tên KH, mã KH, SĐT, địa chỉ hoặc NVKD">
+
                 <select id="nvkdFilter">
                     <option value="">Tất cả NVKD</option>
                 </select>
+
                 <label class="check-filter">
                     <input type="checkbox" id="overdueOnly">
                     Chỉ khách có nợ quá hạn
                 </label>
+
                 <label class="check-filter file-pick">
                     Chọn file Excel:
                     <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
@@ -470,17 +710,40 @@ tbody tr:hover {
             </div>
         </div>
 
+        <!-- THỐNG KÊ -->
         <div class="stats">
-            <div class="stat"><div>Tổng khách hàng</div><h2 id="tongkh">0</h2></div>
-            <div class="stat"><div>Tổng QH 1T</div><h2 id="tongqh1">0</h2></div>
-            <div class="stat"><div>Tổng QH 2T</div><h2 id="tongqh2">0</h2></div>
-            <div class="stat"><div>Tổng QH 3T</div><h2 id="tongqh3">0</h2></div>
-            <div class="stat"><div>Tổng công nợ quá hạn</div><h2 id="tongqh">0</h2></div>
-            <div class="stat"><div>Tổng dư nợ cuối ngày</div><h2 id="tongdn">0</h2></div>
+            <div class="stat">
+                <div>Tổng khách hàng</div>
+                <h2 id="tongkh">0</h2>
+            </div>
+<div class="stat">
+    <div>Tổng QH 1T</div>
+    <h2 id="tongqh1">0</h2>
+</div>
+<div class="stat">
+    <div>Tổng QH 2T</div>
+    <h2 id="tongqh2">0</h2>
+</div>
+<div class="stat">
+    <div>Tổng QH 3T</div>
+    <h2 id="tongqh3">0</h2>
+</div>
+            <div class="stat">
+                <div>Tổng công nợ quá hạn</div>
+                <h2 id="tongqh">0</h2>
+            </div>
+
+            <div class="stat">
+                <div>Tổng dư nợ cuối ngày</div>
+                <h2 id="tongdn">0</h2>
+            </div>
         </div>
+
     </div>
 
+    <!-- BẢNG MÁY TÍNH -->
     <div class="card table-container">
+
         <table>
             <thead>
                 <tr>
@@ -498,26 +761,35 @@ tbody tr:hover {
             </thead>
             <tbody id="dataBody"></tbody>
         </table>
-        <div id="emptyTable" class="empty-message" style="display:none">Không tìm thấy khách hàng</div>
+
+        <div id="emptyTable" class="empty-message" style="display:none">
+            Không tìm thấy khách hàng
+        </div>
+
     </div>
 
+    <!-- BẢNG GỌN CHO ĐIỆN THOẠI -->
     <div class="mobile-list" id="mobileList"></div>
+
 </div>
 
+<!-- CHI TIẾT KHÁCH HÀNG -->
 <div class="modal" id="modal">
     <div class="modal-content">
-        <span class="close" id="closeDetailBtn">×</span>
+        <span class="close" onclick="closeModal()">×</span>
         <div id="detail"></div>
     </div>
 </div>
 
+<!-- ĐỐI CHIẾU CÔNG NỢ -->
 <div class="modal dc-modal" id="dcModal">
     <div class="dc-box">
+
         <div class="dc-bar">
             <label>Từ ngày: <input type="date" id="dcFrom"></label>
             <button type="button" id="dcAuto">Tự động</button>
             <span class="spacer"></span>
-            <button type="button" id="dcDownload" disabled>Tải ảnh (2 phần)</button>
+            <button type="button" id="dcDownload" disabled>Tải ảnh</button>
             <button type="button" id="dcZalo" class="zalo" disabled>Chia sẻ Zalo</button>
             <button type="button" id="dcClose" class="close-btn">Đóng</button>
         </div>
@@ -530,52 +802,44 @@ tbody tr:hover {
         </div>
 
         <div class="dc-view">
-            <div id="dcPart1Wrap" style="display:none;">
-                <div class="dc-part-title">Phần 1: Biên bản đối chiếu & Bảng chi tiết công nợ</div>
-                <img id="dcImg1" alt="Phần 1 - Biên bản đối chiếu công nợ">
-            </div>
-            <div id="dcPart2Wrap" style="display:none;">
-                <div class="dc-part-title">Phần 2: Xác nhận chữ ký, Số tiền bằng chữ, Ghi chú & Lưu ý</div>
-                <img id="dcImg2" alt="Phần 2 - Xác nhận và lưu ý công nợ">
-            </div>
+            <img id="dcImg" alt="Biên bản đối chiếu công nợ" style="display:none">
         </div>
+
     </div>
 </div>
 
 <div class="dc-toast" id="dcToast"></div>
 
 <script>
-const CONGNO_FILE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgbcKx93iDhkfxCsuBlFEpwuex_SS1X9_PkZ-MTA-7GAUK_QRdLIcvwuYS_wFknMclAQp1meo27-mm/pub?gid=1537914786&single=true&output=csv";
-const DETAIL_FILE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgbcKx93iDhkfxCsuBlFEpwuex_SS1X9_PkZ-MTA-7GAUK_QRdLIcvwuYS_wFknMclAQp1meo27-mm/pub?gid=1184385929&single=true&output=csv";
 
-const COMPANY_INFO = {
-    name: "CÔNG TY TNHH TÂN ĐẠT VIỆT NAM",
-    address: "Khu Liên Phương, phường Nông Trang, Tỉnh Phú Thọ",
-    bank: "STK: 113 002 633 897 Ngân hàng Vietinbank",
-    notes: [
-        "Lưu ý:",
-        "- Công ty chỉ có một số tài khoản trên, mọi số tài khoản khác đều không hợp lệ.",
-        "- Mọi thắc mắc và khiếu nại xin vui lòng gọi về số điện thoại (kèm zalo) trực tiếp CTHDTV - GĐ: 0986.378.288 và 0941.266.688 - Mr. Nguyễn Thông."
-    ]
-};
+// ================= TỰ ĐỘNG CÂN CHỈNH VỊ TRÍ GHIM TIÊU ĐỀ BẢNG =================
 
 function updateStickyOffset() {
-    const header = document.getElementById("stickyHeader");
+    const header = document.getElementById('stickyHeader');
     if (header) {
-        document.documentElement.style.setProperty("--sticky-offset", header.offsetHeight + "px");
+        const height = header.offsetHeight;
+        document.documentElement.style.setProperty('--sticky-offset', height + 'px');
     }
 }
-window.addEventListener("load", updateStickyOffset);
-window.addEventListener("resize", updateStickyOffset);
+
+window.addEventListener('load', updateStickyOffset);
+window.addEventListener('resize', updateStickyOffset);
+
+// ================= DỮ LIỆU =================
 
 let allData = [];
-let detailRows = null;
+
+// Trạng thái sắp xếp (null = thứ tự ban đầu: dư nợ giảm dần)
 let sortKey = null;
 let sortAsc = true;
 
 const TEXT_KEYS = ["ten", "diachi", "nvkd"];
 const DATE_KEYS = ["thanhtoan", "muahang"];
 
+// ================= CHUYỂN ĐỔI SỐ =================
+
+// Đọc được cả hai kiểu ghi số:
+//   kiểu Việt Nam: 5.160.000 và 6,5      kiểu Excel quốc tế: " 655,000 " và 319,444.44
 function toNumber(value) {
     let s = String(value ?? "").replace(/[\s '"]/g, "");
     if (!s || s === "-") return 0;
@@ -590,6 +854,7 @@ function toNumber(value) {
     let n;
 
     if (dots && commas) {
+        // Dấu nào đứng sau cùng là dấu thập phân, dấu còn lại là ngăn cách hàng nghìn
         const dec = s.lastIndexOf(".") > s.lastIndexOf(",") ? "." : ",";
         const thou = dec === "." ? "," : ".";
         n = parseFloat(s.split(thou).join("").replace(dec, "."));
@@ -605,81 +870,32 @@ function toNumber(value) {
     return neg ? -n : n;
 }
 
+// ================= ĐỊNH DẠNG SỐ =================
+
 function formatNumber(number) {
-    return new Intl.NumberFormat("vi-VN").format(number);
+    return new Intl.NumberFormat('vi-VN').format(number);
 }
 
-function formatComma(number) {
-    return new Intl.NumberFormat("en-US").format(Math.round(number));
-}
-
+// Chuyển ngày dd/mm/yyyy thành số để so sánh
 function dateValue(s) {
-    const m = String(s || "").match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-    if (!m) return 0;
-    let y = +m[3];
-    if (y < 100) y += 2000;
-    return y * 10000 + (+m[2]) * 100 + (+m[1]);
+    const m = String(s || "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    return m ? (+m[3]) * 10000 + (+m[2]) * 100 + (+m[1]) : 0;
 }
 
+// Giá trị dùng để sắp xếp
 function sortValue(r, key) {
     if (TEXT_KEYS.includes(key)) return (r[key] || "").toLowerCase();
     if (DATE_KEYS.includes(key)) return dateValue(r[key]);
     return toNumber(r[key]);
 }
 
-function numberToVietnameseWords(num) {
-    num = Math.round(Number(num) || 0);
-    if (num === 0) return "Không đồng chẵn";
-    const neg = num < 0 ? "Âm " : "";
-    num = Math.abs(num);
+// ================= NẠP DỮ LIỆU (CSV HOẶC EXCEL) =================
 
-    const chuSo = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
-    const hangDonVi = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
-
-    function docBlock(n, coTram) {
-        const tram = Math.floor(n / 100);
-        const chuc = Math.floor((n % 100) / 10);
-        const donvi = n % 10;
-        const parts = [];
-
-        if (tram > 0 || coTram) parts.push(chuSo[tram] + " trăm");
-
-        if (chuc > 1) {
-            parts.push(chuSo[chuc] + " mươi");
-            if (donvi === 1) parts.push("mốt");
-            else if (donvi === 4) parts.push("tư");
-            else if (donvi === 5) parts.push("lăm");
-            else if (donvi > 0) parts.push(chuSo[donvi]);
-        } else if (chuc === 1) {
-            parts.push("mười");
-            if (donvi === 5) parts.push("lăm");
-            else if (donvi > 0) parts.push(chuSo[donvi]);
-        } else if (donvi > 0) {
-            if (tram > 0 || coTram) parts.push("linh");
-            parts.push(chuSo[donvi]);
-        }
-        return parts.join(" ");
-    }
-
-    let i = 0;
-    const segments = [];
-    while (num > 0) {
-        const block = num % 1000;
-        if (block > 0) {
-            const coTram = Math.floor(num / 1000) > 0;
-            const unit = hangDonVi[i] ? " " + hangDonVi[i] : "";
-            segments.unshift(docBlock(block, coTram) + unit);
-        }
-        num = Math.floor(num / 1000);
-        i++;
-    }
-
-    const text = segments.join(", ").trim();
-    return neg + (text ? text.charAt(0).toUpperCase() + text.slice(1) : "Không") + " đồng chẵn";
-}
-
+// Chuyển nội dung CSV thành mảng các dòng.
+// Tự nhận dấu phân cách (, hoặc ; hoặc tab) và đọc đúng ô nằm trong dấu ngoặc kép "..."
 function csvToRows(text) {
-    text = String(text || "").replace(/^\uFEFF/, "");
+    text = text.replace(/^\uFEFF/, "");
+
     const first = text.split(/\r?\n/, 1)[0] || "";
     const cnt = { ",": 0, ";": 0, "\t": 0 };
     let qq = false;
@@ -687,10 +903,11 @@ function csvToRows(text) {
         if (ch === '"') qq = !qq;
         else if (!qq && ch in cnt) cnt[ch]++;
     }
-    const d = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || ",";
+    const d = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
 
     const out = [];
     let row = [], cur = "", inQ = false;
+
     for (let i = 0; i < text.length; i++) {
         const ch = text[i];
         if (inQ) {
@@ -710,41 +927,65 @@ function csvToRows(text) {
         }
     }
     if (cur !== "" || row.length) { row.push(cur); out.push(row); }
+
     return out.filter(r => r.some(c => String(c).trim() !== ""));
 }
 
+// Nhận mảng các dòng, mỗi dòng là mảng các ô, rồi hiển thị
 function ingest(rows) {
     allData = [];
+
     rows.forEach(c => {
         if (c.length < 10) return;
+
         const s = i => String(c[i] ?? "").trim();
-        if (s(0).includes("Mã KH") || s(1).toLowerCase().includes("tổng cộng") || !s(1)) return;
-        const vn = i => {
-            const n = toNumber(s(i));
-            return n === 0 ? "-" : formatNumber(n);
-        };
+
+        if (
+            s(0).includes('Mã KH') ||
+            s(0).includes('M? KH') ||
+            s(1).toLowerCase().includes('tổng cộng') ||
+            !s(1)
+        ) return;
+
+        // Số tiền hiển thị thống nhất kiểu 5.160.000, số 0 hiển thị là "-"
+        const vn = i => { const n = toNumber(s(i)); return n === 0 ? "-" : formatNumber(n); };
+
         allData.push({
-            ma: s(0), ten: s(1), diachi: s(2), sdt: s(3), nvkd: s(4),
-            qh1: vn(5), qh2: vn(6), qh3: vn(7), tongqh: vn(8), duno: vn(9),
-            thanhtoan: s(10), muahang: s(11)
+            ma: s(0),
+            ten: s(1),
+            diachi: s(2),
+            sdt: s(3),
+            nvkd: s(4),
+            qh1: vn(5),
+            qh2: vn(6),
+            qh3: vn(7),
+            tongqh: vn(8),
+            duno: vn(9),
+            thanhtoan: s(10),
+            muahang: s(11)
         });
     });
+
     buildNVKD();
     render();
     updateStickyOffset();
 }
 
+// Chọn file từ máy: hỗ trợ .xlsx, .xls và .csv
 document.getElementById("fileInput").addEventListener("change", e => {
     const f = e.target.files[0];
     if (!f) return;
+
     if (/\.csv$/i.test(f.name)) {
         f.text().then(t => ingest(csvToRows(t)));
         return;
     }
+
     f.arrayBuffer().then(buf => {
         try {
             const wb = XLSX.read(buf, { type: "array" });
             const ws = wb.Sheets[wb.SheetNames[0]];
+            // raw:false lấy đúng chữ hiển thị trong Excel (số có dấu chấm, ngày dd/mm/yyyy)
             ingest(XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false }));
         } catch (err) {
             alert("Không đọc được file Excel: " + err.message);
@@ -752,21 +993,42 @@ document.getElementById("fileInput").addEventListener("change", e => {
     });
 });
 
-fetch(`${CONGNO_FILE}&t=${Date.now()}`)
-    .then(r => {
-        if (!r.ok) throw new Error("Không tải được dữ liệu công nợ");
-        return r.text();
-    })
-    .then(text => ingest(csvToRows(text)))
-    .catch(err => {
-        document.getElementById("dataBody").innerHTML =
-            `<tr><td colspan="10" style="text-align:center;color:red;">Lỗi tải dữ liệu: ${err.message}</td></tr>`;
-    });
+// ================= ĐỌC FILE CSV TRÊN GITHUB =================
+
+fetch(
+'https://docs.google.com/spreadsheets/d/e/2PACX-1vQgbcKx93iDhkfxCsuBlFEpwuex_SS1X9_PkZ-MTA-7GAUK_QRdLIcvwuYS_wFknMclAQp1meo27-mm/pub?gid=1537914786&single=true&output=csv'
+)
+.then(r => {
+    if (!r.ok) {
+        throw new Error('Không tìm thấy file Congno.csv');
+    }
+    return r.text();
+})
+.then(text => {
+    ingest(csvToRows(text));
+})
+.catch(error => {
+    document.getElementById("dataBody").innerHTML =
+        `<tr><td colspan="10" style="text-align:center;color:red">
+        Lỗi tải dữ liệu: ${error.message}
+        </td></tr>`;
+});
+
+// ================= TẠO DANH SÁCH NVKD =================
 
 function buildNVKD() {
-    const ds = [...new Set(allData.map(x => x.nvkd).filter(Boolean))].sort((a, b) => a.localeCompare(b, "vi"));
+    const ds = [
+        ...new Set(
+            allData
+            .map(x => x.nvkd)
+            .filter(x => x)
+        )
+    ];
+
     const select = document.getElementById("nvkdFilter");
     select.innerHTML = '<option value="">Tất cả NVKD</option>';
+    ds.sort();
+
     ds.forEach(x => {
         const op = document.createElement("option");
         op.value = x;
@@ -775,10 +1037,21 @@ function buildNVKD() {
     });
 }
 
+// ================= BẤM TIÊU ĐỀ ĐỂ SẮP XẾP =================
+
 function setSort(key) {
-    if (sortKey !== key) { sortKey = key; sortAsc = true; }
-    else if (sortAsc) { sortAsc = false; }
-    else { sortKey = null; sortAsc = false; }
+    if (sortKey !== key) {
+        // Lần 1: A → Z (số: nhỏ → lớn)
+        sortKey = key;
+        sortAsc = true;
+    } else if (sortAsc) {
+        // Lần 2: Z → A (số: lớn → nhỏ)
+        sortAsc = false;
+    } else {
+        // Lần 3: trở về thứ tự ban đầu
+        sortKey = null;
+        sortAsc = false;
+    }
     render();
 }
 
@@ -789,101 +1062,175 @@ document.querySelectorAll("thead th[data-key]").forEach(th => {
 function updateArrows() {
     document.querySelectorAll("th[data-key]").forEach(th => {
         const arr = th.querySelector(".arr");
-        if (arr) arr.textContent = th.dataset.key === sortKey ? (sortAsc ? " ▲" : " ▼") : "";
+        if (!arr) return;
+        arr.textContent = th.dataset.key === sortKey ? (sortAsc ? " ▲" : " ▼") : "";
     });
 }
 
+// ================= HIỂN THỊ DỮ LIỆU =================
+
 function render() {
-    const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
-    const nvkd = document.getElementById("nvkdFilter").value;
-    const overdueOnly = document.getElementById("overdueOnly").checked;
+    const keyword = document
+        .getElementById("searchInput")
+        .value
+        .toLowerCase()
+        .trim();
+
+    const nvkd = document
+        .getElementById("nvkdFilter")
+        .value;
+
+    const overdueOnly = document
+        .getElementById("overdueOnly")
+        .checked;
 
     const body = document.getElementById("dataBody");
     const mobileList = document.getElementById("mobileList");
+
     body.innerHTML = "";
     mobileList.innerHTML = "";
 
     const data = allData.filter(r => {
-        const text = `${r.ma} ${r.ten} ${r.diachi} ${r.sdt} ${r.nvkd}`.toLowerCase();
-        return text.includes(keyword) && (!nvkd || r.nvkd === nvkd) && (!overdueOnly || toNumber(r.tongqh) > 0);
+        const text = (
+            r.ma + " " +
+            r.ten + " " +
+            r.diachi + " " +
+            r.sdt + " " +
+            r.nvkd
+        ).toLowerCase();
+
+        return text.includes(keyword)
+            && (!nvkd || r.nvkd === nvkd)
+            && (!overdueOnly || toNumber(r.tongqh) > 0);
     });
 
+    // Thứ tự ban đầu (chưa chọn cột nào): dư nợ giảm dần
     const key = sortKey || "duno";
     const asc = sortKey ? sortAsc : false;
+
     data.sort((a, b) => {
         const x = sortValue(a, key);
         const y = sortValue(b, key);
-        const cmp = typeof x === "string" ? x.localeCompare(y, "vi") : x - y;
+        let cmp;
+        if (typeof x === "string") cmp = x.localeCompare(y, "vi");
+        else cmp = x - y;
         return asc ? cmp : -cmp;
     });
 
-    let tongQH = 0, tongDN = 0, tongQH1 = 0, tongQH2 = 0, tongQH3 = 0;
+let tongQH = 0;
+let tongDN = 0;
+let tongQH1 = 0;
+let tongQH2 = 0;
+let tongQH3 = 0;
 
-    const mCard = document.createElement("div");
-    mCard.className = "card";
-    const mTable = document.createElement("table");
-    mTable.className = "mobile-table";
-    mTable.innerHTML = `<thead><tr>
-        <th data-key="ten">Tên KH<span class="arr"></span></th>
-        <th data-key="tongqh">Tổng QH<span class="arr"></span></th>
-        <th data-key="duno">Dư nợ<span class="arr"></span></th>
-    </tr></thead>`;
-    mTable.querySelectorAll("th[data-key]").forEach(th => th.addEventListener("click", () => setSort(th.dataset.key)));
-    const mTbody = document.createElement("tbody");
+    // Tạo bảng gọn cho điện thoại: Tên KH | Tổng nợ quá hạn | Dư nợ cuối
+    const mobileCard = document.createElement("div");
+    mobileCard.className = "mobile-table-card";
+
+    const mobileTable = document.createElement("table");
+    mobileTable.className = "mobile-table";
+    mobileTable.innerHTML = `
+        <thead>
+            <tr>
+                <th data-key="ten">Tên khách hàng<span class="arr"></span></th>
+                <th data-key="tongqh">Tổng nợ quá hạn<span class="arr"></span></th>
+                <th data-key="duno">Dư nợ cuối<span class="arr"></span></th>
+            </tr>
+        </thead>
+    `;
+    mobileTable.querySelectorAll("th[data-key]").forEach(th => {
+        th.addEventListener("click", () => setSort(th.dataset.key));
+    });
+    const mobileTbody = document.createElement("tbody");
 
     data.forEach(r => {
         tongQH += toNumber(r.tongqh);
         tongDN += toNumber(r.duno);
-        tongQH1 += toNumber(r.qh1);
-        tongQH2 += toNumber(r.qh2);
-        tongQH3 += toNumber(r.qh3);
+tongQH1 += toNumber(r.qh1);
+tongQH2 += toNumber(r.qh2);
+tongQH3 += toNumber(r.qh3);
 
+
+        // BẢNG MÁY TÍNH
         const tr = document.createElement("tr");
         tr.onclick = () => showDetail(r);
-        [r.ten, r.diachi, r.nvkd, r.qh1, r.qh2, r.qh3, r.tongqh, r.duno, r.thanhtoan, r.muahang].forEach(val => {
+
+        [
+            r.ten,
+            r.diachi,
+            r.nvkd,
+            r.qh1,
+            r.qh2,
+            r.qh3,
+            r.tongqh,
+            r.duno,
+            r.thanhtoan,
+            r.muahang
+        ].forEach(value => {
             const td = document.createElement("td");
-            td.textContent = val || "";
+            td.textContent = value || "";
             tr.appendChild(td);
         });
+
         body.appendChild(tr);
 
+        // DÒNG BẢNG ĐIỆN THOẠI (3 CỘT)
         const mTr = document.createElement("tr");
         mTr.onclick = () => showDetail(r);
-        [r.ten || "-", r.tongqh || "0", r.duno || "0"].forEach(val => {
-            const td = document.createElement("td");
-            td.textContent = val;
-            mTr.appendChild(td);
-        });
-        mTbody.appendChild(mTr);
+
+        const tdTen = document.createElement("td");
+        tdTen.textContent = r.ten || "Chưa có tên khách hàng";
+
+        const tdQH = document.createElement("td");
+        tdQH.textContent = r.tongqh || "0";
+
+        const tdDN = document.createElement("td");
+        tdDN.textContent = r.duno || "0";
+
+        mTr.appendChild(tdTen);
+        mTr.appendChild(tdQH);
+        mTr.appendChild(tdDN);
+        mobileTbody.appendChild(mTr);
     });
 
-    document.getElementById("emptyTable").style.display = data.length === 0 ? "block" : "none";
+    document.getElementById("emptyTable")
+        .style.display = data.length === 0 ? "block" : "none";
+
     if (data.length === 0) {
         const empty = document.createElement("div");
         empty.className = "empty-message";
         empty.textContent = "Không tìm thấy khách hàng";
         mobileList.appendChild(empty);
     } else {
-        mTable.appendChild(mTbody);
-        mCard.appendChild(mTable);
-        mobileList.appendChild(mCard);
+        mobileTable.appendChild(mobileTbody);
+        mobileCard.appendChild(mobileTable);
+        mobileList.appendChild(mobileCard);
     }
 
     document.getElementById("tongkh").innerText = formatNumber(data.length);
     document.getElementById("tongqh").innerText = formatNumber(tongQH);
     document.getElementById("tongdn").innerText = formatNumber(tongDN);
-    document.getElementById("tongqh1").innerText = formatNumber(tongQH1);
-    document.getElementById("tongqh2").innerText = formatNumber(tongQH2);
-    document.getElementById("tongqh3").innerText = formatNumber(tongQH3);
+document.getElementById("tongqh1").innerText =
+formatNumber(tongQH1);
+document.getElementById("tongqh2").innerText =
+formatNumber(tongQH2);
+document.getElementById("tongqh3").innerText =
+formatNumber(tongQH3);
+
     updateArrows();
 }
+
+// ================= TÌM KIẾM / LỌC =================
 
 document.getElementById("searchInput").addEventListener("input", render);
 document.getElementById("nvkdFilter").addEventListener("change", render);
 document.getElementById("overdueOnly").addEventListener("change", render);
 
+// ================= CHI TIẾT KHÁCH HÀNG =================
+
 function showDetail(r) {
     document.getElementById("modal").style.display = "block";
+
     const detail = document.getElementById("detail");
     detail.innerHTML = "";
 
@@ -908,8 +1255,11 @@ function showDetail(r) {
         ["Ngày mua hàng gần nhất:", r.muahang]
     ];
 
-    fields.forEach((item, idx) => {
-        if (idx === 4 || idx === 9) detail.appendChild(document.createElement("hr"));
+    fields.forEach((item, index) => {
+        if (index === 4 || index === 9) {
+            detail.appendChild(document.createElement("hr"));
+        }
+
         const p = document.createElement("p");
         const label = document.createElement("span");
         label.className = "label";
@@ -917,582 +1267,701 @@ function showDetail(r) {
         p.appendChild(label);
 
         if (item[2] && item[1] !== "Chưa cập nhật") {
-            const a = document.createElement("a");
-            a.href = "tel:" + item[1].replace(/[^0-9+]/g, "");
-            a.className = "phone-link";
-            a.textContent = item[1];
-            p.appendChild(a);
+            const link = document.createElement("a");
+            link.href = "tel:" + item[1].replace(/[^0-9+]/g, '');
+            link.className = "phone-link";
+            link.textContent = item[1];
+            p.appendChild(link);
         } else {
             p.appendChild(document.createTextNode(item[1] || "Chưa cập nhật"));
         }
+
         detail.appendChild(p);
     });
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "dc-btn-open";
-    btn.textContent = "Đối chiếu công nợ";
-    btn.onclick = () => openRecon(r);
-    detail.appendChild(btn);
+    // Nút mở bảng đối chiếu công nợ của khách này
+    const dcBtn = document.createElement("button");
+    dcBtn.type = "button";
+    dcBtn.className = "dc-btn-open";
+    dcBtn.textContent = "Đối chiếu công nợ";
+    dcBtn.onclick = () => openRecon(r);
+    detail.appendChild(dcBtn);
 }
 
-function closeDetailModal() {
-    document.getElementById("modal").style.display = "none";
-}
-document.getElementById("closeDetailBtn").addEventListener("click", closeDetailModal);
+// ================= ĐỐI CHIẾU CÔNG NỢ =================
 
-let currentCustomer = null;
-let img1Url = "";
-let img2Url = "";
+const DETAIL_FILE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgbcKx93iDhkfxCsuBlFEpwuex_SS1X9_PkZ-MTA-7GAUK_QRdLIcvwuYS_wFknMclAQp1meo27-mm/pub?gid=1537914786&single=true&output=csv";   // file chi tiết công nợ trong repo
+const THOUSAND = ",";                              // dấu ngăn cách hàng nghìn trong ảnh (theo mẫu: 10,547,000)
+const QR_SRC = "data:image/png;base64,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";
+const COMPANY = {
+    name: "CÔNG TY TNHH TÂN ĐẠT VIỆT NAM",
+    addr: "Khu Liên Phương, phường Nông Trang, Tỉnh Phú Thọ",
+    bank: "STK: 113 002 633 897 Ngân hàng Vietinbank"
+};
+
+let detailIndex = null;      // dữ liệu chi tiết đã đọc: { byCode, byName }
+let reconState = { cust: null, from: "", blob: null, fileName: "", model: null };
+
+const byId = id => document.getElementById(id);
+const normKey = s => String(s || "").normalize("NFC").toLowerCase().replace(/\s+/g, " ").trim();
+const pad2 = n => String(n).padStart(2, "0");
+
+// "1.234.567", "1,234,567", "6,00", "6.00", "-1,00" -> số
+function parseVN(s) {
+    return toNumber(s);
+}
+
+// "03/06/2026" -> 20260603
+function toYMD(d) {
+    const m = String(d || "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    return m ? (+m[3]) * 10000 + (+m[2]) * 100 + (+m[1]) : 0;
+}
+
+// 20260603 -> "03/06/26" (định dạng dd/mm/yy)
+function fmtYMD(n) {
+    return pad2(n % 100) + "/" + pad2(Math.floor(n / 100) % 100) + "/" + pad2(Math.floor(n / 10000) % 100);
+}
+
+// 20260603 -> "2026-06-03" (cho ô chọn ngày)
+function ymdToInput(n) {
+    return Math.floor(n / 10000) + "-" + pad2(Math.floor(n / 100) % 100) + "-" + pad2(n % 100);
+}
+
+const money = n => {
+    const r = Math.round(n);
+    return (r < 0 ? "-" : "") + Math.abs(r).toString().replace(/\B(?=(\d{3})+(?!\d))/g, THOUSAND);
+};
+
+const qtyText = n => String(Math.round(Math.abs(n) * 100) / 100);
+
+// ---------- Đọc file chi tiết công nợ ----------
+
+function parseDetail(text) {
+    const lines = csvToRows(text);
+    const head = lines[0].map(s => String(s).trim());
+    const ix = (name, def) => { const i = head.indexOf(name); return i >= 0 ? i : def; };
+
+    const C = {
+        ten: ix("Tên khách hàng", 0), ma: ix("Mã khách hàng", 1),
+        ngayHT: ix("Ngày hạch toán", 2), ngayCT: ix("Ngày chứng từ", 3),
+        so: ix("Số chứng từ", 4), dg: ix("Diễn giải", 5), dgc: ix("Diễn giải chung", 6),
+        no: ix("Phát sinh Nợ", 9), co: ix("Phát sinh Có", 10),
+        sdNo: ix("Số dư Nợ", 11), sdCo: ix("Số dư Có", 12),
+        mh: ix("Mã hàng", 13), th: ix("Tên hàng", 14), dvt: ix("ĐVT", 15), sl: ix("Số lượng", 16)
+    };
+
+    const byCode = new Map(), byName = new Map();
+    const add = (map, key, row) => {
+        if (!key) return;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(row);
+    };
+
+    for (let i = 1; i < lines.length; i++) {
+        const c = lines[i];
+        const ten = (c[C.ten] || "").trim();
+        const ma = (c[C.ma] || "").trim();
+        if (!ma) continue;                               // bỏ dòng tổng đầu file và dòng "Số dòng = ..." cuối file
+
+        const desc = (c[C.dg] || "").trim();
+        const date = (c[C.ngayCT] || c[C.ngayHT] || "").trim();
+
+        const row = {
+            opening: normKey(desc) === "số dư đầu kỳ",
+            date: date,
+            ymd: toYMD(date),
+            voucher: (c[C.so] || "").trim(),
+            desc: desc,
+            general: (c[C.dgc] || "").trim(),
+            no: parseVN(c[C.no]),
+            co: parseVN(c[C.co]),
+            bal: parseVN(c[C.sdNo]) - parseVN(c[C.sdCo]),   // số dư sau dòng này (Nợ dương)
+            ma: (c[C.mh] || "").trim(),
+            ten: (c[C.th] || "").trim(),
+            dvt: (c[C.dvt] || "").trim(),
+            sl: parseVN(c[C.sl])
+        };
+
+        add(byCode, normKey(ma), row);
+        add(byName, normKey(ten), row);
+    }
+
+    return { byCode, byName };
+}
+
+async function ensureDetail() {
+    if (detailIndex) return;
+    const r = await fetch(DETAIL_FILE + "?v=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("Không tìm thấy file " + DETAIL_FILE + " trong repo.");
+    detailIndex = parseDetail(await r.text());
+}
+
+// ---------- Tính dữ liệu đối chiếu ----------
+
+// Gộp các dòng kế toán thành từng dòng hàng hóa / thu tiền
+function buildLines(slice) {
+    const lines = [];
+    const keyed = new Map();
+
+    slice.forEach(r => {
+        if (r.ma) {
+            // Dòng hàng hóa: gộp tiền hàng + thuế GTGT + chiết khấu cùng chứng từ, cùng mã hàng
+            const key = r.voucher + "|" + r.ma;
+            let L = keyed.get(key);
+            if (!L) {
+                L = { kind: "prod", date: r.date, ten: r.ten || r.desc, dvt: "", sl: 0, net: 0, general: r.general };
+                keyed.set(key, L);
+                lines.push(L);
+            }
+            L.net += r.no - r.co;
+            L.sl += r.sl;
+            if (r.dvt && !L.dvt) L.dvt = r.dvt;
+        } else {
+            lines.push({ kind: "free", date: r.date, ten: r.desc, net: r.no - r.co });
+        }
+    });
+
+    const out = [];
+    lines.forEach(L => {
+        const net = Math.round(L.net);
+        if (net === 0) return;
+
+        if (L.kind === "prod") {
+            if (net > 0) {
+                out.push({ date: L.date, label: "Bán hàng " + L.ten, dvt: L.dvt, sl: L.sl,
+                           price: L.sl ? Math.round(net / L.sl) : 0, debit: net, credit: 0 });
+            } else {
+                const isReturn = L.sl < 0 || /trả lại|thu lại/i.test(L.general);
+                out.push({ date: L.date, label: (isReturn ? "Trả lại hàng " : "Giảm giá ") + L.ten, dvt: "",
+                           sl: Math.abs(L.sl), price: 0, debit: 0, credit: -net });
+            }
+        } else if (net < 0) {
+            out.push({ date: L.date, label: L.ten, dvt: "", sl: 0, price: 0, debit: 0, credit: -net });
+        } else {
+            out.push({ date: L.date, label: L.ten, dvt: "", sl: 0, price: 0, debit: net, credit: 0 });
+        }
+    });
+
+    return out;
+}
+
+// fromYMD = 0: tự động; khác 0: người dùng chọn ngày bắt đầu
+function buildRecon(rows, fromYMD) {
+    const op = rows.find(r => r.opening);
+    const tx = rows.filter(r => !r.opening);
+    const openBal = op ? op.bal : 0;                                   // dư nợ ngày 01/01
+    const year = tx.length ? Math.floor(tx[tx.length - 1].ymd / 10000) : new Date().getFullYear();
+
+    let startIdx = 0, opening = openBal;
+    let startYMD = year * 10000 + 101;                                 // 01/01/năm
+    let mode = "year";                                                 // year | zero | manual
+
+    if (fromYMD) {
+        mode = "manual";
+        let i = tx.findIndex(r => r.ymd >= fromYMD);
+        if (i < 0) i = tx.length;
+        startIdx = i;
+        opening = i > 0 ? tx[i - 1].bal : openBal;
+        startYMD = fromYMD;
+    } else {
+        // Lần cuối trong năm mà công nợ về 0
+        let z = -1;
+        tx.forEach((r, i) => {
+            if (Math.floor(r.ymd / 10000) === year && Math.abs(r.bal) < 0.5) z = i;
+        });
+        if (z >= 0) {
+            while (z + 1 < tx.length && tx[z + 1].voucher === tx[z].voucher) z++;   // hết chứng từ đó
+            mode = "zero";
+            startIdx = z + 1;
+            opening = tx[z].bal;
+            startYMD = tx[startIdx] ? tx[startIdx].ymd : tx[z].ymd;
+        } else if (Math.abs(openBal) < 0.5) {
+            mode = "year";
+        }
+    }
+
+    const lines = buildLines(tx.slice(startIdx));
+    const sumDebit = lines.reduce((s, L) => s + L.debit, 0);
+    const sumCredit = lines.reduce((s, L) => s + L.credit, 0);
+
+    return {
+        mode, opening, startYMD, lines, sumDebit, sumCredit,
+        end: opening + sumDebit - sumCredit,
+        fileEnd: tx.length ? tx[tx.length - 1].bal : openBal
+    };
+}
+
+// ---------- Vẽ biên bản đối chiếu ra ảnh ----------
+
+let qrImagePromise = null;
+function loadQR() {
+    if (!qrImagePromise) {
+        qrImagePromise = new Promise(res => {
+            const im = new Image();
+            im.onload = () => res(im);
+            im.onerror = () => res(null);
+            im.src = QR_SRC;
+        });
+    }
+    return qrImagePromise;
+}
+
+async function drawRecon(d, custName) {
+    const qr = await loadQR();
+
+    const SCALE = 2, W = 1100, M = 24, PAD = 8, LH = 23;
+    const FONT = '"Times New Roman", "Liberation Serif", Times, serif';
+    const f = (px, bold, ital) => (ital ? "italic " : "") + (bold ? "bold " : "") + px + "px " + FONT;
+
+    const mc = document.createElement("canvas").getContext("2d");
+    const tw = (t, font) => { mc.font = font; return mc.measureText(String(t)).width; };
+    const wrap = (t, font, maxW) => {
+        mc.font = font;
+        const out = []; let cur = "";
+        String(t).split(/\s+/).forEach(w => {
+            const test = cur ? cur + " " + w : w;
+            if (!cur || mc.measureText(test).width <= maxW) cur = test;
+            else { out.push(cur); cur = w; }
+        });
+        if (cur) out.push(cur);
+        return out;
+    };
+
+    const BODY = f(18), BOLD = f(18, true);
+    const printDate = (() => { const t = new Date(); return pad2(t.getDate()) + "/" + pad2(t.getMonth() + 1) + "/" + pad2(t.getFullYear() % 100); })();
+    const shortD = s => { const m = String(s).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? pad2(m[1]) + "/" + pad2(m[2]) + "/" + m[3].slice(2) : s; };
+
+    // Nội dung từng dòng
+    const rows = d.lines.map((L, i) => ({
+        tt: String(i + 1),
+        date: shortD(L.date),
+        name: L.label,
+        dvt: L.dvt || "",
+        sl: L.sl ? qtyText(L.sl) : "-",
+        price: L.price ? money(L.price) : "-",
+        debit: L.debit ? money(L.debit) : "-",
+        credit: L.credit ? money(L.credit) : "-"
+    }));
+
+    const heads = ["TT", "Ngày/tháng", "Tên hàng", "ĐVT", "SL", "Đơn giá", "Thành tiền", "Thanh toán/Trả lại hàng/Giảm giá"];
+    const headPay = ["Thanh toán/", "Trả lại hàng/", "Giảm giá"];
+
+    // Độ rộng cột: vừa khít nội dung (trừ cột Tên hàng lấy phần còn lại)
+    const cw = new Array(8).fill(0);
+    const fit = [0, 1, 3, 4, 5, 6, 7];
+    fit.forEach(k => {
+        if (k === 7) cw[k] = Math.max(...headPay.map(t => tw(t, BOLD)));
+        else cw[k] = tw(heads[k], BOLD);
+    });
+    rows.forEach(r => {
+        cw[0] = Math.max(cw[0], tw(r.tt, BODY));
+        cw[1] = Math.max(cw[1], tw(r.date, BODY));
+        cw[3] = Math.max(cw[3], tw(r.dvt, BODY));
+        cw[4] = Math.max(cw[4], tw(r.sl, BODY));
+        cw[5] = Math.max(cw[5], tw(r.price, BODY));
+        cw[6] = Math.max(cw[6], tw(r.debit, BODY));
+        cw[7] = Math.max(cw[7], tw(r.credit, BODY));
+    });
+    const sDebit = d.sumDebit ? money(d.sumDebit) : "-", sCredit = d.sumCredit ? money(d.sumCredit) : "-";
+    const sOpen = money(d.opening), sEnd = money(d.end);
+    cw[6] = Math.max(cw[6], tw(sDebit, BOLD), tw(sCredit, BOLD), tw(sEnd, BOLD));
+    cw[7] = Math.max(cw[7], tw(sCredit, BOLD), tw(sOpen, BOLD), tw("Đồng", BODY));
+    for (let k = 0; k < 8; k++) if (k !== 2) cw[k] = Math.ceil(cw[k]) + PAD * 2;
+
+    const tableW = W - M * 2;
+    cw[2] = tableW - cw.reduce((s, v, k) => (k === 2 ? s : s + v), 0);
+    const colX = [];
+    cw.reduce((x, w, k) => { colX[k] = x; return x + w; }, M);
+
+    // Chiều cao dòng
+    rows.forEach(r => {
+        r.nameLines = wrap(r.name, BODY, cw[2] - PAD * 2);
+        r.h = Math.max(1, r.nameLines.length) * LH + 12;
+    });
+    const headH = 3 * LH + 10;
+    const totalH = LH + 14;
+
+    // Khối tiêu đề
+    const hdrTop = 20, hdrH = 150, leftW = 430, qrSize = 148;
+    const qx = M + leftW + 20;
+    const rx = qx + qrSize + 24, rw = W - M - rx;
+    const titleLines = wrap("BIÊN BẢN ĐỐI CHIẾU VÀ XÁC NHẬN CÔNG NỢ KIÊM GIẤY GHI NHẬN NỢ CỦA KHÁCH HÀNG", f(22, true), rw);
+
+    // Dòng khách hàng
+    const custLabel = "Khách hàng:";
+    const dateText = "Ngày lập đối chiếu: " + printDate;
+    const nameX = M + tw(custLabel, f(21, true)) + 14;
+    const nameMax = W - M - tw(dateText, f(19, false, true)) - 24 - nameX;
+    const nameLines = wrap(custName, f(23, true), nameMax);
+    const custH = Math.max(1, nameLines.length) * 28 + 6;
+
+    const H = hdrTop + hdrH + 14 + custH + 6 + 30 + headH + rows.reduce((s, r) => s + r.h, 0) + totalH + 20 + 62 + 24;
+
+    const cv = document.createElement("canvas");
+    cv.width = W * SCALE;
+    cv.height = Math.ceil(H) * SCALE;
+    const ctx = cv.getContext("2d");
+    ctx.scale(SCALE, SCALE);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#000";
+    ctx.textBaseline = "middle";
+
+    const text = (t, x, y, font, align, color) => {
+        ctx.font = font; ctx.textAlign = align || "left"; ctx.fillStyle = color || "#000";
+        ctx.fillText(String(t), x, y);
+    };
+    const fitText = (t, cx, y, maxW, px, bold) => {
+        while (px > 11 && tw(t, f(px, bold)) > maxW) px--;
+        text(t, cx, y, f(px, bold), "center");
+    };
+
+    // --- Đầu trang: công ty, QR, tiêu đề ---
+    const lcx = M + leftW / 2;
+    fitText(COMPANY.name, lcx, hdrTop + 34, leftW, 24, true);
+    fitText(COMPANY.addr, lcx, hdrTop + 72, leftW, 19, true);
+    fitText(COMPANY.bank, lcx, hdrTop + 106, leftW, 19, true);
+
+    ctx.strokeStyle = "#1f4e8c"; ctx.lineWidth = 1.5;
+    ctx.strokeRect(qx, hdrTop, qrSize, qrSize);
+    if (qr) ctx.drawImage(qr, qx + 5, hdrTop + 5, qrSize - 10, qrSize - 10);
+
+    const tTop = hdrTop + (hdrH - titleLines.length * 30) / 2 + 10;
+    titleLines.forEach((t, i) => text(t, rx + rw / 2, tTop + i * 30 + 15, f(22, true), "center"));
+
+    // --- Khách hàng + ngày lập ---
+    let y = hdrTop + hdrH + 14;
+    text(custLabel, M, y + 17, f(21, true), "left");
+    nameLines.forEach((t, i) => text(t, nameX, y + 17 + i * 28, f(23, true), "left"));
+    text(dateText, W - M, y + 17, f(19, false, true), "right");
+    y += custH + 6;
+
+    // --- Dư nợ đầu ---
+    text("Dư nợ đầu ngày: " + fmtYMD(d.startYMD), colX[7] - PAD, y + 15, BOLD, "right");
+    text(sOpen, colX[7] + cw[7] - PAD, y + 15, BOLD, "right");
+    y += 30;
+
+    // --- Bảng ---
+    ctx.strokeStyle = "#444"; ctx.lineWidth = 1;
+    const cell = (k, top, h) => ctx.strokeRect(colX[k] + 0.5, top + 0.5, cw[k], h);
+
+    for (let k = 0; k < 8; k++) {
+        cell(k, y, headH);
+        if (k === 7) headPay.forEach((t, i) => text(t, colX[k] + cw[k] / 2, y + 5 + LH * i + LH / 2, BOLD, "center"));
+        else text(heads[k], colX[k] + cw[k] / 2, y + headH / 2, BOLD, "center");
+    }
+    y += headH;
+
+    rows.forEach(r => {
+        const mid = y + r.h / 2;
+        for (let k = 0; k < 8; k++) cell(k, y, r.h);
+
+        text(r.tt, colX[0] + cw[0] / 2, mid, BODY, "center");
+        text(r.date, colX[1] + cw[1] / 2, mid, BODY, "center");
+        const startY = y + (r.h - r.nameLines.length * LH) / 2 + LH / 2;
+        r.nameLines.forEach((t, i) => text(t, colX[2] + PAD, startY + i * LH, BODY, "left"));
+        text(r.dvt, colX[3] + cw[3] / 2, mid, BODY, "center");
+        text(r.sl, colX[4] + cw[4] / 2, mid, BODY, "center");
+        text(r.price, colX[5] + cw[5] - PAD, mid, BODY, "right");
+        text(r.debit, colX[6] + cw[6] - PAD, mid, BODY, "right");
+        text(r.credit, colX[7] + cw[7] - PAD, mid, BODY, "right");
+        y += r.h;
+    });
+
+    // Dòng cộng
+    for (let k = 0; k < 8; k++) cell(k, y, totalH);
+    text("Cộng", colX[2] + PAD, y + totalH / 2, BOLD, "left");
+    text(sDebit, colX[6] + cw[6] - PAD, y + totalH / 2, BOLD, "right");
+    text(sCredit, colX[7] + cw[7] - PAD, y + totalH / 2, BOLD, "right");
+    y += totalH + 20;
+
+    // --- Cuối trang ---
+    text("Số tiền đã thanh toán:", colX[6] - 8, y + 15, f(20, true), "right");
+    text(sCredit, colX[6] + cw[6] - PAD, y + 15, f(20, true), "right");
+    text("Đồng", colX[7] + PAD, y + 15, f(20), "left");
+    y += 32;
+
+    ctx.fillStyle = "#92d050";
+    ctx.fillRect(colX[6], y - 1, cw[6], 32);
+    ctx.strokeStyle = "#444";
+    ctx.strokeRect(colX[6] + 0.5, y - 0.5, cw[6], 32);
+    text("Số tiền còn phải thanh toán:", colX[6] - 8, y + 15, f(20, true), "right");
+    text(sEnd, colX[6] + cw[6] - PAD, y + 15, f(20, true), "right");
+    text("Đồng", colX[7] + PAD, y + 15, f(20), "left");
+y += 100;
+text(
+"Xác nhận của Khách hàng",
+M + 30,
+y,
+f(20,true),
+"left"
+);
+text(
+"Giám đốc",
+W * 0.38,
+y,
+f(20,true),
+"center"
+);
+text(
+"Nhân viên kinh doanh",
+W * 0.66,
+y,
+f(20,true),
+"center"
+);
+text(
+"Kế toán bán hàng",
+W * 0.88,
+y,
+f(20,true),
+"center"
+);
+y += 120;
+text(
+"Tính đến ngày:",
+M,
+y,
+f(18,true),
+"left"
+);
+text(
+new Date().toLocaleDateString('vi-VN'),
+M + 160,
+y,
+f(18),
+"left"
+);
+y += 35;
+text(
+"Số tiền Quý khách hàng còn phải thanh toán là:",
+M,
+y,
+f(18,true),
+"left"
+);
+text(
+money(d.end) + " đồng",
+M + 420,
+y,
+f(18),
+"left"
+);
+y += 50;
+text(
+"Ghi chú",
+M,
+y,
+f(18,true),
+"left"
+);
+ctx.strokeRect(
+M,
+y + 10,
+W - M * 2,
+80
+);
+y += 120;
+text(
+"Lưu ý:",
+M,
+y,
+f(18,true),
+"left"
+);
+y += 25;
+text(
+"- Công ty chỉ có một số tài khoản trên, mọi số tài khoản khác đều không hợp lệ.",
+M,
+y,
+f(16),
+"left"
+);
+y += 25;
+text(
+"- Mọi thắc mắc vui lòng liên hệ trực tiếp nhân viên kinh doanh.",
+M,
+y,
+f(16),
+"left"
+);
+
+    return cv;
+}
+
+// ---------- Giao diện đối chiếu ----------
 
 function showToast(msg) {
-    const t = document.getElementById("dcToast");
+    const t = byId("dcToast");
     t.textContent = msg;
     t.style.display = "block";
-    clearTimeout(showToast._timer);
-    showToast._timer = setTimeout(() => { t.style.display = "none"; }, 3000);
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => { t.style.display = "none"; }, 7000);
 }
 
-async function ensureDetailRows() {
-    if (detailRows) return detailRows;
-    const res = await fetch(`${DETAIL_FILE}&t=${Date.now()}`);
-    if (!res.ok) throw new Error("Không tải được sheet chitietcongnophaithu");
-    detailRows = csvToRows(await res.text());
-    return detailRows;
+function slug(s) {
+    return String(s || "khach").normalize("NFD").replace(/[̀-ͯ]/g, "")
+        .replace(/đ/g, "d").replace(/Đ/g, "D").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-function parseDateAny(val) {
-    const s = String(val || "").trim();
-    if (!s) return null;
-    let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-    if (m) {
-        let y = +m[3];
-        if (y < 100) y += 2000;
-        return new Date(y, +m[2] - 1, +m[1]);
-    }
-    m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
+function setDcError(msg) {
+    byId("dcError").style.display = msg ? "block" : "none";
+    byId("dcErrorText").textContent = msg || "";
 }
 
-function fmtShort(d) {
-    if (!d || isNaN(d.getTime())) return "";
-    return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(-2)}`;
-}
-
-function fmtFull(d) {
-    if (!d || isNaN(d.getTime())) return "";
-    return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
-}
-
-function drawQR(ctx, x, y, size, seed) {
-    ctx.save();
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(x, y, size, size);
-    ctx.strokeStyle = "#1f4e78";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, size, size);
-
-    const n = 21;
-    const pad = 8;
-    const cs = (size - pad * 2) / n;
-    let h = 2166136261;
-    for (let i = 0; i < seed.length; i++) {
-        h ^= seed.charCodeAt(i);
-        h = Math.imul(h, 16777619);
-    }
-
-    ctx.fillStyle = "#111";
-    for (let r = 0; r < n; r++) {
-        for (let c = 0; c < n; c++) {
-            const inFinder = (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
-            if (inFinder) continue;
-            h = Math.imul(h ^ (r * 37 + c * 13), 1664525) + 1013904223;
-            if (((h >>> 24) & 1) === 1) {
-                ctx.fillRect(Math.round(x + pad + c * cs), Math.round(y + pad + r * cs), Math.ceil(cs), Math.ceil(cs));
-            }
-        }
-    }
-
-    [[0,0],[0,n-7],[n-7,0]].forEach(([fr, fc]) => {
-        const fx = x + pad + fc * cs;
-        const fy = y + pad + fr * cs;
-        const fs = cs * 7;
-        ctx.fillStyle = "#111";
-        ctx.fillRect(fx, fy, fs, fs);
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(fx + cs, fy + cs, fs - cs * 2, fs - cs * 2);
-        ctx.fillStyle = "#111";
-        ctx.fillRect(fx + cs * 2, fy + cs * 2, fs - cs * 4, fs - cs * 4);
-    });
-    ctx.restore();
-}
-
-function wrapText(ctx, text, maxW) {
-    const words = String(text || "").split(/\s+/).filter(Boolean);
-    if (!words.length) return ["-"];
-    const lines = [];
-    let cur = words[0];
-    for (let i = 1; i < words.length; i++) {
-        const test = cur + " " + words[i];
-        if (ctx.measureText(test).width <= maxW) cur = test;
-        else { lines.push(cur); cur = words[i]; }
-    }
-    lines.push(cur);
-    return lines;
-}
-
-function extractCustomerRecon(rows, customer) {
-    const maTarget = String(customer.ma || "").trim().toLowerCase();
-    const tenTarget = String(customer.ten || "").trim().toLowerCase();
-    let openingBalance = toNumber(customer.duno);
-    const items = [];
-
-    for (const r of rows) {
-        if (!Array.isArray(r) || r.length < 2) continue;
-        const c0 = String(r[0] || "").trim().toLowerCase();
-        const c1 = String(r[1] || "").trim().toLowerCase();
-        const c2 = String(r[2] || "").trim().toLowerCase();
-        if (c0.includes("mã") || c1.includes("tổng cộng")) continue;
-
-        const matchMa = maTarget && (c0 === maTarget || c1 === maTarget);
-        const matchTen = tenTarget && (c1 === tenTarget || c2 === tenTarget);
-        if (!matchMa && !matchTen) continue;
-
-        let dt = null;
-        for (const cell of r) {
-            const p = parseDateAny(cell);
-            if (p) { dt = p; break; }
-        }
-
-        const nums = [];
-        for (let i = 1; i < r.length; i++) {
-            const raw = String(r[i] || "").trim();
-            if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(raw)) continue;
-            const n = toNumber(raw);
-            if (n !== 0) nums.push(n);
-        }
-
-        const rowStr = r.join(" ").toLowerCase();
-        if (rowStr.includes("dư nợ đầu") || rowStr.includes("số dư đầu")) {
-            if (nums.length) openingBalance = nums[nums.length - 1];
-            continue;
-        }
-
-        const desc = String(r[3] || r[2] || "Phát sinh công nợ").trim();
-        const dvt = String(r[4] || "").trim();
-        const sl = toNumber(r[5]);
-        const donGia = toNumber(r[6]);
-        let thanhTien = toNumber(r[7]);
-        let giamGiaThanhToan = toNumber(r[8]);
-
-        if (!thanhTien && !giamGiaThanhToan && nums.length) {
-            if (rowStr.includes("thu tiền") || rowStr.includes("thanh toán") || rowStr.includes("giảm giá") || rowStr.includes("trả lại")) {
-                giamGiaThanhToan = nums[0];
-            } else {
-                thanhTien = nums[0];
-            }
-        }
-
-        items.push({
-            date: dt,
-            dateStr: dt ? fmtShort(dt) : String(r[2] || "-"),
-            desc, dvt, sl, donGia, thanhTien, giamGiaThanhToan
-        });
-    }
-
-    return { openingBalance, items };
-}
-
-function buildTwoPartImages(customer, recon, fromDateStr) {
-    const fromDate = fromDateStr ? new Date(fromDateStr + "T00:00:00") : null;
-    const list = fromDate ? recon.items.filter(x => !x.date || x.date >= fromDate) : recon.items;
-
-    const width = 1040;
-    const marginX = 24;
-    const tableW = width - marginX * 2;
-
-    const cols = [
-        { title: "TT", w: 46, align: "center" },
-        { title: "Ngày/tháng", w: 96, align: "center" },
-        { title: "Tên hàng", w: 394, align: "left" },
-        { title: "ĐVT", w: 62, align: "center" },
-        { title: "SL", w: 54, align: "right" },
-        { title: "Đơn giá", w: 108, align: "right" },
-        { title: "Thành tiền", w: 114, align: "right" },
-        { title: "Thanh toán/\nTrả lại hàng/\nGiảm giá", w: 118, align: "right" }
-    ];
-
-    const mCanvas = document.createElement("canvas");
-    const mCtx = mCanvas.getContext("2d");
-    mCtx.font = "15px Arial";
-
-    const rowData = list.map(item => {
-        const lines = wrapText(mCtx, item.desc, cols[2].w - 14);
-        const h = Math.max(34, lines.length * 20 + 10);
-        return { item, lines, h };
-    });
-
-    const rowsH = rowData.reduce((s, r) => s + r.h, 0);
-    const bodyH = Math.max(38, rowsH);
-    const headerH = 54;
-    const totalH = 36;
-
-    // ================= PHẦN 1 =================
-    const h1 = 195 + headerH + bodyH + totalH + 86;
-    const c1 = document.createElement("canvas");
-    c1.width = width;
-    c1.height = h1;
-    const ctx1 = c1.getContext("2d");
-
-    ctx1.fillStyle = "#fff";
-    ctx1.fillRect(0, 0, width, h1);
-
-    ctx1.fillStyle = "#111";
-    ctx1.font = "bold 17px Arial";
-    ctx1.fillText(COMPANY_INFO.name, marginX, 34);
-    ctx1.font = "bold 14px Arial";
-    ctx1.fillText(COMPANY_INFO.address, marginX, 56);
-    ctx1.fillText(COMPANY_INFO.bank, marginX, 76);
-
-    drawQR(ctx1, 456, 14, 112, `${COMPANY_INFO.bank}|${customer.ma || customer.ten}`);
-
-    ctx1.textAlign = "center";
-    ctx1.font = "bold 17px Arial";
-    ctx1.fillText("BIÊN BẢN ĐỐI CHIẾU VÀ XÁC NHẬN", 815, 36);
-    ctx1.fillText("CÔNG NỢ KIÊM GIẤY GHI NHẬN NỢ", 815, 58);
-    ctx1.fillText("CỦA KHÁCH HÀNG", 815, 80);
-    ctx1.textAlign = "left";
-
-    const todayShort = fmtShort(new Date());
-    ctx1.font = "bold 16px Arial";
-    ctx1.fillText(`Khách hàng:  ${customer.ten || ""}`, marginX, 152);
-    ctx1.textAlign = "right";
-    ctx1.font = "italic 15px Arial";
-    ctx1.fillText(`Ngày lập đối chiếu: ${todayShort}`, width - marginX, 152);
-    ctx1.textAlign = "left";
-
-    const openingBalance = recon.openingBalance || 0;
-    const fromShort = fromDate ? fmtShort(fromDate) : "01/01/26";
-    ctx1.textAlign = "right";
-    ctx1.font = "bold 15px Arial";
-    ctx1.fillText(`Dư nợ đầu ngày ${fromShort}`, width - marginX - 135, 178);
-    ctx1.fillText(formatComma(openingBalance), width - marginX - 6, 178);
-    ctx1.textAlign = "left";
-
-    let y1 = 186;
-    let x1 = marginX;
-    cols.forEach(c => {
-        ctx1.strokeStyle = "#333";
-        ctx1.lineWidth = 1;
-        ctx1.strokeRect(x1, y1, c.w, headerH);
-        ctx1.fillStyle = "#111";
-        ctx1.font = "bold 14px Arial";
-        ctx1.textAlign = "center";
-        const ls = c.title.split("\n");
-        if (ls.length === 1) ctx1.fillText(ls[0], x1 + c.w / 2, y1 + 32);
-        else ls.forEach((t, i) => ctx1.fillText(t, x1 + c.w / 2, y1 + 18 + i * 15));
-        ctx1.textAlign = "left";
-        x1 += c.w;
-    });
-    y1 += headerH;
-
-    let sumTT = 0;
-    let sumPay = 0;
-
-    if (!rowData.length) {
-        ctx1.strokeRect(marginX, y1, tableW, bodyH);
-        ctx1.fillStyle = "#666";
-        ctx1.font = "15px Arial";
-        ctx1.fillText("Không có phát sinh chi tiết trong kỳ.", marginX + 12, y1 + 24);
-        y1 += bodyH;
-    } else {
-        rowData.forEach((m, idx) => {
-            const { item, lines, h } = m;
-            sumTT += item.thanhTien;
-            sumPay += item.giamGiaThanhToan;
-
-            const vals = [
-                String(idx + 1),
-                item.dateStr || "-",
-                "",
-                item.dvt || (item.thanhTien > 0 ? "Xô" : ""),
-                item.sl ? formatComma(item.sl) : (item.thanhTien > 0 ? "1" : ""),
-                item.donGia ? formatComma(item.donGia) : "-",
-                item.thanhTien ? formatComma(item.thanhTien) : "-",
-                item.giamGiaThanhToan ? formatComma(item.giamGiaThanhToan) : "-"
-            ];
-
-            let cx = marginX;
-            cols.forEach((c, cIdx) => {
-                ctx1.strokeStyle = "#444";
-                ctx1.strokeRect(cx, y1, c.w, h);
-                ctx1.fillStyle = "#111";
-                ctx1.font = "14px Arial";
-                if (cIdx === 2) {
-                    lines.forEach((ln, lIdx) => ctx1.fillText(ln, cx + 7, y1 + 21 + lIdx * 19));
-                } else if (c.align === "center") {
-                    ctx1.textAlign = "center";
-                    ctx1.fillText(vals[cIdx], cx + c.w / 2, y1 + 22);
-                } else {
-                    ctx1.textAlign = "right";
-                    ctx1.fillText(vals[cIdx], cx + c.w - 7, y1 + 22);
-                }
-                ctx1.textAlign = "left";
-                cx += c.w;
-            });
-            y1 += h;
-        });
-    }
-
-    let cx = marginX;
-    cols.forEach((c, cIdx) => {
-        ctx1.fillStyle = "#f7f8fa";
-        ctx1.fillRect(cx, y1, c.w, totalH);
-        ctx1.strokeStyle = "#333";
-        ctx1.strokeRect(cx, y1, c.w, totalH);
-        ctx1.fillStyle = "#111";
-        ctx1.font = "bold 15px Arial";
-        if (cIdx === 2) ctx1.fillText("Cộng", cx + 7, y1 + 23);
-        else if (cIdx === 6) {
-            ctx1.textAlign = "right";
-            ctx1.fillText(formatComma(sumTT), cx + c.w - 7, y1 + 23);
-        } else if (cIdx === 7) {
-            ctx1.textAlign = "right";
-            ctx1.fillText(formatComma(sumPay), cx + c.w - 7, y1 + 23);
-        }
-        ctx1.textAlign = "left";
-        cx += c.w;
-    });
-    y1 += totalH + 16;
-
-    const conNo = openingBalance + sumTT - sumPay;
-
-    ctx1.textAlign = "right";
-    ctx1.font = "bold 16px Arial";
-    ctx1.fillStyle = "#111";
-    ctx1.fillText("Số tiền đã thanh toán:", width - marginX - 155, y1 + 12);
-    ctx1.fillText(formatComma(sumPay), width - marginX - 48, y1 + 12);
-    ctx1.textAlign = "left";
-    ctx1.font = "15px Arial";
-    ctx1.fillText("Đồng", width - marginX - 38, y1 + 12);
-
-    y1 += 28;
-    ctx1.textAlign = "right";
-    ctx1.font = "bold 16px Arial";
-    ctx1.fillText("Số tiền còn phải thanh toán:", width - marginX - 155, y1 + 14);
-    ctx1.textAlign = "left";
-
-    const boxX = width - marginX - 145;
-    const boxW = 102;
-    const boxH = 26;
-    ctx1.fillStyle = "#8fd159";
-    ctx1.fillRect(boxX, y1 - 4, boxW, boxH);
-    ctx1.strokeStyle = "#333";
-    ctx1.strokeRect(boxX, y1 - 4, boxW, boxH);
-
-    ctx1.textAlign = "right";
-    ctx1.font = "bold 16px Arial";
-    ctx1.fillStyle = "#111";
-    ctx1.fillText(formatComma(conNo), boxX + boxW - 6, y1 + 15);
-    ctx1.textAlign = "left";
-    ctx1.font = "15px Arial";
-    ctx1.fillText("Đồng", width - marginX - 38, y1 + 15);
-
-    img1Url = c1.toDataURL("image/png");
-
-    // ================= PHẦN 2 =================
-    const h2 = 335;
-    const c2 = document.createElement("canvas");
-    c2.width = width;
-    c2.height = h2;
-    const ctx2 = c2.getContext("2d");
-
-    ctx2.fillStyle = "#fff";
-    ctx2.fillRect(0, 0, width, h2);
-
-    const signCols = [
-        { title: "Xác nhận của Khách hàng", w: 284 },
-        { title: "Giám đốc", w: 214 },
-        { title: "Nhân viên kinh doanh", w: 244 },
-        { title: "Kế toán bán hàng", w: tableW - 742 }
-    ];
-
-    let sx = marginX;
-    let sy = 10;
-    const sHeadH = 28;
-    const sBodyH = 84;
-    const sRowH = 34;
-
-    signCols.forEach(sc => {
-        ctx2.fillStyle = "#f2f3f5";
-        ctx2.fillRect(sx, sy, sc.w, sHeadH);
-        ctx2.strokeStyle = "#9aa0a6";
-        ctx2.lineWidth = 1;
-        ctx2.strokeRect(sx, sy, sc.w, sHeadH);
-
-        ctx2.fillStyle = "#111";
-        ctx2.font = "bold 14px Arial";
-        ctx2.textAlign = "center";
-        ctx2.fillText(sc.title, sx + sc.w / 2, sy + 19);
-        ctx2.textAlign = "left";
-
-        ctx2.strokeRect(sx, sy + sHeadH, sc.w, sBodyH);
-        sx += sc.w;
-    });
-
-    const r1Y = sy + sHeadH + sBodyH;
-    const r2Y = r1Y + sRowH;
-    ctx2.strokeStyle = "#9aa0a6";
-    ctx2.strokeRect(marginX, r1Y, tableW, sRowH);
-    ctx2.strokeRect(marginX, r2Y, tableW, sRowH);
-
-    ctx2.fillStyle = "#222";
-    ctx2.font = "italic 14px Arial";
-    ctx2.fillText(`Tính đến ngày      ${fmtFull(new Date())}`, marginX + 46, r1Y + 22);
-    ctx2.fillText(`Số tiền Quý khách hàng còn phải thanh toán là: ${numberToVietnameseWords(conNo)}`, marginX + 16, r2Y + 22);
-
-    const noteHeadY = r2Y + sRowH;
-    ctx2.fillStyle = "#f7f8fa";
-    ctx2.fillRect(marginX, noteHeadY, tableW, 24);
-    ctx2.strokeRect(marginX, noteHeadY, tableW, 24);
-    ctx2.fillStyle = "#111";
-    ctx2.font = "bold italic 14px Arial";
-    ctx2.fillText("Ghi chú", marginX + 8, noteHeadY + 17);
-
-    [24, 46, 68].forEach(off => {
-        ctx2.strokeStyle = "#666";
-        ctx2.setLineDash([4, 3]);
-        ctx2.beginPath();
-        ctx2.moveTo(marginX, noteHeadY + off);
-        ctx2.lineTo(marginX + tableW, noteHeadY + off);
-        ctx2.stroke();
-    });
-    ctx2.setLineDash([]);
-    ctx2.strokeStyle = "#333";
-    ctx2.strokeRect(marginX, noteHeadY + 24, tableW, 66);
-
-    let ly = noteHeadY + 110;
-    ctx2.fillStyle = "#111";
-    ctx2.font = "bold italic 13px Arial";
-    ctx2.fillText(COMPANY_INFO.notes[0], marginX, ly);
-    ctx2.fillText(COMPANY_INFO.notes[1], marginX, ly + 17);
-    ctx2.fillText(COMPANY_INFO.notes[2], marginX, ly + 34);
-
-    img2Url = c2.toDataURL("image/png");
-
-    document.getElementById("dcImg1").src = img1Url;
-    document.getElementById("dcImg2").src = img2Url;
-    document.getElementById("dcPart1Wrap").style.display = "block";
-    document.getElementById("dcPart2Wrap").style.display = "block";
-    document.getElementById("dcDownload").disabled = false;
-    document.getElementById("dcZalo").disabled = false;
-}
-
-async function generateRecon() {
-    if (!currentCustomer) return;
-    const info = document.getElementById("dcInfo");
-    const errBox = document.getElementById("dcError");
-    const errText = document.getElementById("dcErrorText");
-    const fromVal = document.getElementById("dcFrom").value;
-
-    errBox.style.display = "none";
-    info.textContent = "Đang tải dữ liệu chi tiết công nợ phải thu...";
+async function openRecon(r) {
+    reconState = { cust: r, from: "", blob: null, fileName: "", model: null };
+    byId("dcModal").style.display = "block";
+    byId("dcImg").style.display = "none";
+    byId("dcDownload").disabled = true;
+    byId("dcZalo").disabled = true;
+    byId("dcFrom").value = "";
+    setDcError("");
+    byId("dcInfo").textContent = "Đang tải dữ liệu chi tiết công nợ...";
 
     try {
-        const rows = await ensureDetailRows();
-        const recon = extractCustomerRecon(rows, currentCustomer);
-        buildTwoPartImages(currentCustomer, recon, fromVal);
-        info.textContent = `Khách hàng: ${currentCustomer.ten} — Đã tạo 2 phần ảnh biên bản (${recon.items.length} dòng chi tiết).`;
-    } catch (err) {
-        info.textContent = "Không tải tự động được sheet chi tiết.";
-        errText.textContent = `Lỗi: ${err.message}. Bạn có thể chọn file CSV thủ công bên dưới:`;
-        errBox.style.display = "block";
+        await ensureDetail();
+    } catch (e) {
+        byId("dcInfo").textContent = "";
+        setDcError(e.message + " Hãy tải file chitietcongnophaithu.csv lên cùng thư mục với index.html trên GitHub, hoặc chọn file từ máy:");
+        return;
     }
+    refreshRecon();
 }
 
-function openRecon(customer) {
-    currentCustomer = customer;
-    img1Url = "";
-    img2Url = "";
-    document.getElementById("dcFrom").value = "";
-    document.getElementById("dcPart1Wrap").style.display = "none";
-    document.getElementById("dcPart2Wrap").style.display = "none";
-    document.getElementById("dcDownload").disabled = true;
-    document.getElementById("dcZalo").disabled = true;
-    document.getElementById("dcModal").style.display = "block";
-    generateRecon();
+async function refreshRecon() {
+    const r = reconState.cust;
+    const rows = detailIndex.byCode.get(normKey(r.ma)) || detailIndex.byName.get(normKey(r.ten));
+
+    if (!rows || !rows.length) {
+        byId("dcImg").style.display = "none";
+        byId("dcInfo").textContent = "Không tìm thấy khách \"" + r.ten + "\" (mã " + r.ma + ") trong file chi tiết công nợ.";
+        return;
+    }
+
+    const fromYMD = reconState.from ? toYMD(reconState.from) : 0;
+    const d = buildRecon(rows, fromYMD);
+    reconState.model = d;
+
+    byId("dcFrom").value = ymdToInput(d.startYMD);
+
+    let note;
+    if (d.mode === "manual") note = "Bạn chọn từ ngày " + fmtYMD(d.startYMD) + ".";
+    else if (d.mode === "zero") note = "Tự động: công nợ về 0 lần cuối, lấy dữ liệu từ " + fmtYMD(d.startYMD) + ".";
+    else note = "Tự động: công nợ chưa hết trong năm, lấy từ 01/01/" + pad2(Math.floor(d.startYMD / 10000) % 100) + ".";
+    if (Math.abs(d.end - d.fileEnd) > 1) note += " (Lưu ý: dư nợ tính lại khác file " + money(d.fileEnd) + ")";
+    if (!d.lines.length) note += " Không có phát sinh trong kỳ này.";
+    byId("dcInfo").textContent = note;
+
+    const cv = await drawRecon(d, r.ten);
+    const img = byId("dcImg");
+    img.src = cv.toDataURL("image/png");
+    img.style.display = "block";
+
+    cv.toBlob(b => {
+        reconState.blob = b;
+        reconState.fileName = "DoiChieuCongNo_" + slug(r.ten) + "_" + fmtYMD(toYMD(new Date().toLocaleDateString("en-GB"))).replace(/\//g, "-") + ".png";
+        byId("dcDownload").disabled = !b;
+        byId("dcZalo").disabled = !b;
+    }, "image/png");
+}
+
+function downloadRecon() {
+    if (!reconState.blob) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(reconState.blob);
+    a.download = reconState.fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+async function shareZalo() {
+    if (!reconState.blob) return;
+    const file = new File([reconState.blob], reconState.fileName, { type: "image/png" });
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    let errName = "";
+
+    // Điện thoại: mở bảng chia sẻ của máy, chọn Zalo
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: "Đối chiếu công nợ " + reconState.cust.ten });
+            return;
+        } catch (e) {
+            if (e && e.name === "AbortError") return;
+            errName = (e && e.name) || "";
+        }
+    }
+
+    // Điện thoại nhưng trình duyệt không chia sẻ được ảnh: chỉ tải ảnh về,
+    // không mở web Zalo (web Zalo sẽ bắt tải app trên điện thoại)
+    if (isMobile) {
+        downloadRecon();
+        showToast("Trình duyệt này không mở được bảng chia sẻ" + (errName ? " (" + errName + ")" : "") +
+            ". Đã tải ảnh về máy: hãy mở Zalo, chọn khách rồi gửi ảnh vừa tải trong thư viện ảnh.");
+        return;
+    }
+
+    // Máy tính: mở Zalo web, copy ảnh vào bộ nhớ tạm và tải ảnh về
+    window.open("https://chat.zalo.me/", "_blank");
+    let copied = false;
+    try {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": reconState.blob })]);
+        copied = true;
+    } catch (e) {}
+    downloadRecon();
+    showToast(copied
+        ? "Đã sao chép ảnh và tải về máy. Mở khung chat Zalo của khách rồi bấm Ctrl+V để gửi."
+        : "Đã tải ảnh về máy. Mở khung chat Zalo của khách rồi chọn ảnh vừa tải để gửi.");
 }
 
 function closeRecon() {
-    document.getElementById("dcModal").style.display = "none";
+    byId("dcModal").style.display = "none";
 }
 
-document.getElementById("dcClose").addEventListener("click", closeRecon);
-document.getElementById("dcFrom").addEventListener("change", generateRecon);
-document.getElementById("dcAuto").addEventListener("click", () => {
-    document.getElementById("dcFrom").value = "";
-    generateRecon();
+byId("dcFrom").addEventListener("change", e => {
+    reconState.from = e.target.value ? e.target.value.split("-").reverse().join("/") : "";
+    if (detailIndex && reconState.cust) refreshRecon();
 });
-
-document.getElementById("dcCsv").addEventListener("change", e => {
+byId("dcAuto").addEventListener("click", () => {
+    reconState.from = "";
+    if (detailIndex && reconState.cust) refreshRecon();
+});
+byId("dcDownload").addEventListener("click", downloadRecon);
+byId("dcZalo").addEventListener("click", shareZalo);
+byId("dcClose").addEventListener("click", closeRecon);
+byId("dcCsv").addEventListener("change", e => {
     const f = e.target.files[0];
-    if (!f || !currentCustomer) return;
+    if (!f) return;
     f.text().then(t => {
-        detailRows = csvToRows(t);
-        generateRecon();
+        detailIndex = parseDetail(t);
+        setDcError("");
+        refreshRecon();
     });
 });
 
-function triggerDownload(url, filename) {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
+// ================= ĐÓNG CHI TIẾT =================
+
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
 }
 
-document.getElementById("dcDownload").addEventListener("click", () => {
-    if (!img1Url || !img2Url || !currentCustomer) return;
-    const slug = (currentCustomer.ma || currentCustomer.ten || "KH").replace(/[^a-zA-Z0-9_-]+/g, "_");
-    triggerDownload(img1Url, `DoiChieu_${slug}_Phan1.png`);
-    setTimeout(() => {
-        triggerDownload(img2Url, `DoiChieu_${slug}_Phan2.png`);
-        showToast("Đã tải đủ 2 phần ảnh biên bản đối chiếu công nợ");
-    }, 250);
+document.getElementById("modal").addEventListener("click", function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
 });
 
-document.getElementById("dcZalo").addEventListener("click", async () => {
-    if (!img1Url || !img2Url || !currentCustomer) return;
-    try {
-        const b1 = await (await fetch(img1Url)).blob();
-        const b2 = await (await fetch(img2Url)).blob();
-        const files = [
-            new File([b1], "doi-chieu-phan-1.png", { type: "image/png" }),
-            new File([b2], "doi-chieu-phan-2.png", { type: "image/png" })
-        ];
-        if (navigator.canShare && navigator.canShare({ files })) {
-            await navigator.share({
-                title: `Đối chiếu công nợ - ${currentCustomer.ten}`,
-                text: `Biên bản đối chiếu công nợ ${currentCustomer.ten} (2 phần)`,
-                files
-            });
-            return;
-        }
-    } catch (_) {}
-
-    const slug = (currentCustomer.ma || currentCustomer.ten || "KH").replace(/[^a-zA-Z0-9_-]+/g, "_");
-    triggerDownload(img1Url, `DoiChieu_${slug}_Phan1.png`);
-    setTimeout(() => {
-        triggerDownload(img2Url, `DoiChieu_${slug}_Phan2.png`);
-        showToast("Đã tải 2 ảnh — mở Zalo và gửi cả 2 ảnh cho khách hàng.");
-    }, 250);
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+        if (byId("dcModal").style.display === "block") closeRecon();
+        else closeModal();
+    }
 });
 
-window.addEventListener("click", e => {
-    if (e.target === document.getElementById("modal")) closeDetailModal();
-    if (e.target === document.getElementById("dcModal")) closeRecon();
-});
 </script>
+
 </body>
 </html>
