@@ -807,7 +807,7 @@ tbody tr:hover {
             <label>Từ ngày: <input type="date" id="dcFrom"></label>
             <button type="button" id="dcAuto">Tự động</button>
             <span class="spacer"></span>
-            <button type="button" id="dcPdf" class="excel-btn" disabled title="Tải biên bản PDF khổ A4 ngang, căn sát đầu trang, sẵn sàng in">Tải file PDF</button>
+            <button type="button" id="dcPdf" class="excel-btn" disabled title="Tải biên bản PDF khổ A4 dọc, tự xuống trang, sẵn sàng in">Tải file PDF</button>
             <button type="button" id="dcDownload" disabled>Tải ảnh</button>
             <button type="button" id="dcZalo" class="zalo" disabled>Chia sẻ Zalo</button>
             <button type="button" id="dcClose" class="close-btn">Đóng</button>
@@ -1090,7 +1090,10 @@ function ingest(rows) {
             tongqh: vn(8),
             duno: vn(9),
             thanhtoan: formatDateDDMMYY(s(10)),
-            muahang: formatDateDDMMYY(s(11))
+            muahang: formatDateDDMMYY(s(11)),
+            bb: s(12),
+            ngaydc: formatDateDDMMYY(s(13)),
+            vat: vn(14)
         });
     });
 
@@ -1365,11 +1368,14 @@ function showDetail(r) {
         ["Tổng công nợ quá hạn:", r.tongqh],
         ["Dư nợ cuối ngày:", r.duno],
         ["Ngày thanh toán gần nhất:", formatDateDDMMYY(r.thanhtoan)],
-        ["Ngày mua hàng gần nhất:", formatDateDDMMYY(r.muahang)]
+        ["Ngày mua hàng gần nhất:", formatDateDDMMYY(r.muahang)],
+        ["Biên bản đối chiếu công nợ:", r.bb],
+        ["Ngày đối chiếu công nợ:", r.ngaydc],
+        ["Tổng số tiền đã xuất VAT:", r.vat]
     ];
 
     fields.forEach((item, index) => {
-        if (index === 4 || index === 9) {
+        if (index === 4 || index === 9 || index === 11) {
             detail.appendChild(document.createElement("hr"));
         }
 
@@ -1919,7 +1925,289 @@ async function drawRecon(d, custName) {
     return cv;
 }
 
-// ---------- Xuất PDF đúng bố cục ảnh, khổ A4, sẵn sàng in ----------
+// ---------- Vẽ biên bản nhiều trang A4 dọc (dùng riêng cho file PDF) ----------
+// Quy tắc ngắt trang:
+//  - Phần đầu (công ty, QR, tiêu đề, khách hàng, ngày lập, dư nợ đầu ngày) lặp lại ở MỌI trang.
+//  - Dòng tiêu đề cột (TT, Ngày/tháng, Tên hàng...) chỉ hiện ở trang 1.
+//  - Dòng hàng không bị cắt ngang giữa hai trang.
+//  - Dòng Cộng + số tiền thanh toán đi cùng dòng hàng cuối.
+//  - Cụm chữ ký + ghi chú + lưu ý luôn đi nguyên cụm, nếu không đủ chỗ thì sang trang mới.
+
+async function drawReconPages(d, custName) {
+    const qr = await loadQR();
+
+    const SCALE = 2, W = 1100, PH = Math.round(W * 297 / 210), M = 24, PAD = 8, LH = 23, BOTTOM = 30;
+    const FONT = '"Times New Roman", "Liberation Serif", Times, serif';
+    const f = (px, bold, ital) => (ital ? "italic " : "") + (bold ? "bold " : "") + px + "px " + FONT;
+
+    const mc = document.createElement("canvas").getContext("2d");
+    const tw = (t, font) => { mc.font = font; return mc.measureText(String(t)).width; };
+    const wrap = (t, font, maxW) => {
+        mc.font = font;
+        const out = []; let cur = "";
+        String(t).split(/\s+/).forEach(w => {
+            const test = cur ? cur + " " + w : w;
+            if (!cur || mc.measureText(test).width <= maxW) cur = test;
+            else { out.push(cur); cur = w; }
+        });
+        if (cur) out.push(cur);
+        return out;
+    };
+
+    const BODY = f(18), BOLD = f(18, true);
+    const nowObj = new Date();
+    const printDate = pad2(nowObj.getDate()) + "/" + pad2(nowObj.getMonth() + 1) + "/" + pad2(nowObj.getFullYear() % 100);
+    const shortD = s => formatDateDDMMYY(s);
+
+    const rows = d.lines.map((L, i) => ({
+        tt: String(i + 1),
+        date: shortD(L.date),
+        name: L.label,
+        dvt: L.dvt || "",
+        sl: L.sl ? qtyText(L.sl) : "-",
+        price: L.price ? money(L.price) : "-",
+        debit: L.debit ? money(L.debit) : "-",
+        credit: L.credit ? money(L.credit) : "-"
+    }));
+
+    const heads = ["TT", "Ngày/tháng", "Tên hàng", "ĐVT", "SL", "Đơn giá", "Thành tiền", "Thanh toán/Trả lại hàng/Giảm giá"];
+    const headPay = ["Thanh toán/", "Trả lại hàng/", "Giảm giá"];
+
+    const cw = new Array(8).fill(0);
+    [0, 1, 3, 4, 5, 6, 7].forEach(k => {
+        if (k === 7) cw[k] = Math.max(...headPay.map(t => tw(t, BOLD)));
+        else cw[k] = tw(heads[k], BOLD);
+    });
+    rows.forEach(r => {
+        cw[0] = Math.max(cw[0], tw(r.tt, BODY));
+        cw[1] = Math.max(cw[1], tw(r.date, BODY));
+        cw[3] = Math.max(cw[3], tw(r.dvt, BODY));
+        cw[4] = Math.max(cw[4], tw(r.sl, BODY));
+        cw[5] = Math.max(cw[5], tw(r.price, BODY));
+        cw[6] = Math.max(cw[6], tw(r.debit, BODY));
+        cw[7] = Math.max(cw[7], tw(r.credit, BODY));
+    });
+    const sDebit = d.sumDebit ? money(d.sumDebit) : "-", sCredit = d.sumCredit ? money(d.sumCredit) : "-";
+    const sOpen = money(d.opening), sEnd = money(d.end);
+    cw[6] = Math.max(cw[6], tw(sDebit, BOLD), tw(sCredit, BOLD), tw(sEnd, BOLD));
+    cw[7] = Math.max(cw[7], tw(sCredit, BOLD), tw(sOpen, BOLD), tw("Đồng", BODY));
+    for (let k = 0; k < 8; k++) if (k !== 2) cw[k] = Math.ceil(cw[k]) + PAD * 2;
+
+    const tableW = W - M * 2;
+    cw[2] = tableW - cw.reduce((s, v, k) => (k === 2 ? s : s + v), 0);
+    const colX = [];
+    cw.reduce((x, w, k) => { colX[k] = x; return x + w; }, M);
+
+    rows.forEach(r => {
+        r.nameLines = wrap(r.name, BODY, cw[2] - PAD * 2);
+        r.h = Math.max(1, r.nameLines.length) * LH + 12;
+    });
+    const headH = 3 * LH + 10;
+    const totalH = LH + 14;
+
+    const hdrTop = 20, hdrH = 150, leftW = 430, qrSize = 148;
+    const qx = M + leftW + 20;
+    const rx = qx + qrSize + 24, rw = W - M - rx;
+    const titleLines = wrap("BIÊN BẢN ĐỐI CHIẾU VÀ XÁC NHẬN CÔNG NỢ KIÊM GIẤY GHI NHẬN NỢ CỦA KHÁCH HÀNG", f(22, true), rw);
+
+    const custLabel = "Khách hàng:";
+    const dateText = "Ngày lập đối chiếu: " + printDate;
+    const nameX = M + tw(custLabel, f(21, true)) + 14;
+    const nameMax = W - M - tw(dateText, f(19, false, true)) - 24 - nameX;
+    const nameLines = wrap(custName, f(23, true), nameMax);
+    const custH = Math.max(1, nameLines.length) * 28 + 6;
+
+    const amountWordsLine = "Số tiền Qúy khách hàng còn phải thanh toán là: " + numberToVietnameseWords(d.end);
+    const noteLine1 = "- Công ty chỉ có một số tài khoản trên, mọi số tài khoản khác đều không hợp lệ.";
+    const noteLine2 = "- Mọi thắc mắc và khiếu nại xin vui lòng gọi về số điện thoại (kèm zalo) trực tiếp CTHĐTV - GĐ: 0986.378.288 và 0941.266.688 - Mr. Nguyễn Văn Thông.";
+
+    const noteFont = f(16.5, true, true);
+    const note1Lines = wrap(noteLine1, noteFont, tableW - 8);
+    const note2Lines = wrap(noteLine2, noteFont, tableW - 8);
+    const wordsLines = wrap(amountWordsLine, f(18, false, true), tableW - 20);
+
+    const sigHeaderH = 34, sigSpaceH = 115, noteBoxH = 105;
+    const belowSigH = Math.max(54, 24 + wordsLines.length * 22 + 10);
+    const signH = sigHeaderH + sigSpaceH + belowSigH + noteBoxH + 14 + 26 + (note1Lines.length + note2Lines.length) * 22 + 6;
+    const totalsH = totalH + 20 + 32 + 46;
+
+    const topH = hdrTop + hdrH + 14 + custH + 6 + 30;
+
+    const items = rows.map(r => ({ type: "row", r, h: r.h }));
+    if (items.length) {
+        const last = items.pop();
+        items.push({ type: "last", r: last.r, h: last.h + totalsH });
+    } else {
+        items.push({ type: "totals", h: totalsH });
+    }
+    items.push({ type: "sign", h: signH });
+
+    const limit = PH - BOTTOM;
+    const pages = [[]];
+    let y = topH + headH;
+    items.forEach(it => {
+        let pg = pages[pages.length - 1];
+        if (y + it.h > limit && pg.length) {
+            pg = [];
+            pages.push(pg);
+            y = topH;
+        }
+        pg.push({ it, y });
+        y += it.h;
+    });
+
+    const paint = (ctx, pi) => {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, W, PH);
+        ctx.fillStyle = "#000";
+        ctx.textBaseline = "middle";
+
+        const text = (t, x, yy, font, align, color) => {
+            ctx.font = font; ctx.textAlign = align || "left"; ctx.fillStyle = color || "#000";
+            ctx.fillText(String(t), x, yy);
+        };
+        const fitText = (t, cx, yy, maxW, px, bold) => {
+            while (px > 11 && tw(t, f(px, bold)) > maxW) px--;
+            text(t, cx, yy, f(px, bold), "center");
+        };
+        const cell = (k, top, h) => {
+            ctx.strokeStyle = "#444"; ctx.lineWidth = 1; ctx.setLineDash([]);
+            ctx.strokeRect(colX[k] + 0.5, top + 0.5, cw[k], h);
+        };
+
+        const lcx = M + leftW / 2;
+        fitText(COMPANY.name, lcx, hdrTop + 34, leftW, 24, true);
+        fitText(COMPANY.addr, lcx, hdrTop + 72, leftW, 19, true);
+        fitText(COMPANY.bank, lcx, hdrTop + 106, leftW, 19, true);
+
+        ctx.strokeStyle = "#1f4e8c"; ctx.lineWidth = 1.5;
+        ctx.strokeRect(qx, hdrTop, qrSize, qrSize);
+        if (qr) ctx.drawImage(qr, qx + 4, hdrTop + 4, qrSize - 8, qrSize - 8);
+
+        const tTop = hdrTop + (hdrH - titleLines.length * 30) / 2 + 10;
+        titleLines.forEach((t, i) => text(t, rx + rw / 2, tTop + i * 30 + 15, f(22, true), "center"));
+
+        let yy = hdrTop + hdrH + 14;
+        text(custLabel, M, yy + 17, f(21, true), "left");
+        nameLines.forEach((t, i) => text(t, nameX, yy + 17 + i * 28, f(23, true), "left"));
+        text(dateText, W - M, yy + 17, f(19, false, true), "right");
+        yy += custH + 6;
+
+        text("Dư nợ đầu ngày " + fmtYMD(d.startYMD) + ":", colX[7] - PAD, yy + 15, BOLD, "right");
+        text(sOpen, colX[7] + cw[7] - PAD, yy + 15, BOLD, "right");
+        yy += 30;
+
+        if (pi === 0) {
+            for (let k = 0; k < 8; k++) {
+                cell(k, yy, headH);
+                if (k === 7) headPay.forEach((t, i) => text(t, colX[k] + cw[k] / 2, yy + 5 + LH * i + LH / 2, BOLD, "center"));
+                else text(heads[k], colX[k] + cw[k] / 2, yy + headH / 2, BOLD, "center");
+            }
+        }
+
+        const drawRow = (r, ry) => {
+            const mid = ry + r.h / 2;
+            for (let k = 0; k < 8; k++) cell(k, ry, r.h);
+            text(r.tt, colX[0] + cw[0] / 2, mid, BODY, "center");
+            text(r.date, colX[1] + cw[1] / 2, mid, BODY, "center");
+            const startY = ry + (r.h - r.nameLines.length * LH) / 2 + LH / 2;
+            r.nameLines.forEach((t, i) => text(t, colX[2] + PAD, startY + i * LH, BODY, "left"));
+            text(r.dvt, colX[3] + cw[3] / 2, mid, BODY, "center");
+            text(r.sl, colX[4] + cw[4] / 2, mid, BODY, "center");
+            text(r.price, colX[5] + cw[5] - PAD, mid, BODY, "right");
+            text(r.debit, colX[6] + cw[6] - PAD, mid, BODY, "right");
+            text(r.credit, colX[7] + cw[7] - PAD, mid, BODY, "right");
+        };
+
+        const drawTotals = ty => {
+            for (let k = 0; k < 8; k++) cell(k, ty, totalH);
+            text("Cộng", colX[2] + PAD, ty + totalH / 2, BOLD, "left");
+            text(sDebit, colX[6] + cw[6] - PAD, ty + totalH / 2, BOLD, "right");
+            text(sCredit, colX[7] + cw[7] - PAD, ty + totalH / 2, BOLD, "right");
+            ty += totalH + 20;
+
+            text("Số tiền đã thanh toán:", colX[6] - 8, ty + 15, f(20, true), "right");
+            text(sCredit, colX[6] + cw[6] - PAD, ty + 15, f(20, true), "right");
+            text("Đồng", colX[7] + PAD, ty + 15, f(20), "left");
+            ty += 32;
+
+            ctx.fillStyle = "#92d050";
+            ctx.fillRect(colX[6], ty - 1, cw[6], 32);
+            ctx.strokeStyle = "#444"; ctx.lineWidth = 1;
+            ctx.strokeRect(colX[6] + 0.5, ty - 0.5, cw[6], 32);
+            text("Số tiền còn phải thanh toán:", colX[6] - 8, ty + 15, f(20, true), "right");
+            text(sEnd, colX[6] + cw[6] - PAD, ty + 15, f(20, true), "right");
+            text("Đồng", colX[7] + PAD, ty + 15, f(20), "left");
+        };
+
+        const drawSign = sy => {
+            const sigCols = [
+                { title: "Xác nhận của Khách hàng", w: 300 },
+                { title: "Giám đốc", w: 220 },
+                { title: "Nhân viên kinh doanh", w: 270 },
+                { title: "Kế toán bán hàng", w: tableW - (300 + 220 + 270) }
+            ];
+            let sx = M;
+            ctx.strokeStyle = "#666"; ctx.lineWidth = 1; ctx.setLineDash([]);
+            sigCols.forEach(sc => {
+                ctx.strokeRect(sx + 0.5, sy + 0.5, sc.w, sigHeaderH);
+                text(sc.title, sx + sc.w / 2, sy + sigHeaderH / 2, f(19, true), "center");
+                ctx.strokeRect(sx + 0.5, sy + sigHeaderH + 0.5, sc.w, sigSpaceH);
+                sx += sc.w;
+            });
+            const sigBottomY = sy + sigHeaderH + sigSpaceH;
+
+            text("Tính đến ngày", M + 10, sigBottomY + 14, f(18, false, true), "left");
+            text(printDate, M + 165, sigBottomY + 14, f(18, false, true), "left");
+            wordsLines.forEach((wl, idx) => {
+                text(wl, M + 10, sigBottomY + 38 + idx * 22, f(18, false, true), "left");
+            });
+
+            let ny = sigBottomY + belowSigH;
+            ctx.strokeStyle = "#444";
+            ctx.strokeRect(M + 0.5, ny + 0.5, tableW, noteBoxH);
+            text("Ghi chú", M + 8, ny + 14, f(18, true, true), "left");
+            for (let lineIdx = 1; lineIdx <= 3; lineIdx++) {
+                const ly = ny + 26 + lineIdx * 20;
+                ctx.beginPath();
+                ctx.setLineDash(lineIdx === 3 ? [] : [4, 3]);
+                ctx.moveTo(M + 1, ly);
+                ctx.lineTo(M + tableW - 1, ly);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            ny += noteBoxH + 14;
+
+            text("Lưu ý:", M, ny + 10, noteFont, "left");
+            let fy = ny + 32;
+            note1Lines.forEach(nl => { text(nl, M, fy, noteFont, "left"); fy += 22; });
+            note2Lines.forEach(nl => { text(nl, M, fy, noteFont, "left"); fy += 22; });
+        };
+
+        pages[pi].forEach(({ it, y: iy }) => {
+            if (it.type === "row") drawRow(it.r, iy);
+            else if (it.type === "last") { drawRow(it.r, iy); drawTotals(iy + it.r.h); }
+            else if (it.type === "totals") drawTotals(iy);
+            else if (it.type === "sign") drawSign(iy);
+        });
+
+        if (pages.length > 1) {
+            text("Trang " + (pi + 1) + "/" + pages.length, W - M, PH - 12, f(14, false, true), "right", "#666");
+        }
+    };
+
+    return pages.map((_, pi) => {
+        const cv = document.createElement("canvas");
+        cv.width = W * SCALE;
+        cv.height = PH * SCALE;
+        const ctx = cv.getContext("2d");
+        ctx.scale(SCALE, SCALE);
+        paint(ctx, pi);
+        return cv;
+    });
+}
+
+// ---------- Xuất PDF A4 dọc, tự xuống trang, sẵn sàng in ----------
 
 async function exportReconPdf() {
     if (!reconState.model || !reconState.cust) return;
@@ -1936,11 +2224,7 @@ async function exportReconPdf() {
 
         const d = reconState.model;
         const cust = reconState.cust;
-
-        // Lấy đúng canvas đang dùng để hiển thị biên bản: giữ nguyên QR,
-        // phông chữ, màu sắc, đường kẻ, chữ ký và các ghi chú.
-        const canvas = await drawRecon(d, cust.ten);
-        const dataUrl = canvas.toDataURL("image/png");
+        const canvases = await drawReconPages(d, cust.ten);
 
         const nowObj = new Date();
         const printDate = pad2(nowObj.getDate()) + "-" +
@@ -1949,29 +2233,24 @@ async function exportReconPdf() {
 
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({
-            orientation: "landscape",
+            orientation: "portrait",
             unit: "mm",
             format: "a4",
             compress: true
         });
 
-        // Khổ A4 ngang. Phóng biên bản tối đa theo cả chiều rộng và chiều cao,
-        // căn sát đầu trang để không xuất hiện khoảng trắng lớn phía trên.
-        // Vẫn giữ nguyên tỷ lệ ảnh và chừa lề in an toàn.
         const pageW = pdf.internal.pageSize.getWidth();
         const pageH = pdf.internal.pageSize.getHeight();
-        const marginX = 5;
-        const marginTop = 3;
-        const marginBottom = 3;
-        const maxW = pageW - marginX * 2;
-        const maxH = pageH - marginTop - marginBottom;
-        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-        const imgW = canvas.width * ratio;
-        const imgH = canvas.height * ratio;
-        const x = (pageW - imgW) / 2;
-        const y = marginTop;
+        const marginX = 6;
+        const imgW = pageW - marginX * 2;
+        const imgH = imgW * canvases[0].height / canvases[0].width;
+        const y = Math.max(0, (pageH - imgH) / 2);
 
-        pdf.addImage(dataUrl, "PNG", x, y, imgW, imgH, undefined, "FAST");
+        canvases.forEach((cv, i) => {
+            if (i > 0) pdf.addPage("a4", "portrait");
+            pdf.addImage(cv.toDataURL("image/png"), "PNG", marginX, y, imgW, imgH, undefined, "FAST");
+        });
+
         pdf.setProperties({
             title: "Biên bản đối chiếu công nợ - " + cust.ten,
             subject: "Biên bản đối chiếu và xác nhận công nợ",
@@ -1980,7 +2259,7 @@ async function exportReconPdf() {
         });
 
         pdf.save("DoiChieuCongNo_" + slug(cust.ten) + "_" + printDate + ".pdf");
-        showToast("Đã tải PDF khổ A4 ngang. Khi in, chọn hướng giấy Ngang (Landscape) và Tỷ lệ vừa trang.");
+        showToast("Đã tải PDF khổ A4 dọc (" + canvases.length + " trang). Khi in, chọn giấy A4 hướng Dọc (Portrait), tỷ lệ 100%.");
     } catch (err) {
         console.error("Lỗi xuất PDF:", err);
         alert("Không xuất được file PDF: " + (err && err.message ? err.message : err));
