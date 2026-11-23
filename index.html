@@ -1511,10 +1511,16 @@ async function ensureDetail() {
 }
 
 // ---------- Tính dữ liệu đối chiếu ----------
+// ĐÃ SỬA: không cộng dồn số lượng giữa dòng doanh thu / chiết khấu / thuế của cùng một chứng từ.
+// Phần mềm kế toán ghi số lượng ở cả dòng doanh thu (Nợ) và dòng chiết khấu (Có),
+// nên nếu cộng dồn sẽ bị gấp đôi (24 + 24 = 48).
 
 function buildLines(slice) {
     const lines = [];
     const keyed = new Map();
+
+    // Lấy số lượng có giá trị tuyệt đối lớn nhất (giữ nguyên dấu)
+    const maxAbs = (cur, v) => Math.abs(v) > Math.abs(cur) ? v : cur;
 
     slice.forEach(r => {
         if (r.ma) {
@@ -1526,7 +1532,8 @@ function buildLines(slice) {
                     date: r.date,
                     ten: r.ten || r.desc,
                     dvt: "",
-                    sl: 0,
+                    slDebit: 0,   // số lượng ở các dòng phát sinh Nợ (doanh thu, thuế)
+                    slCredit: 0,  // số lượng ở các dòng phát sinh Có (chiết khấu, trả hàng)
                     net: 0,
                     general: r.general,
                     desc: r.desc,
@@ -1535,8 +1542,13 @@ function buildLines(slice) {
                 keyed.set(key, L);
                 lines.push(L);
             }
-            L.net += r.no - r.co;
-            L.sl += r.sl;
+            const rowNet = r.no - r.co;
+            L.net += rowNet;
+
+            // KHÔNG cộng dồn: dòng chiết khấu cùng mang số lượng của dòng doanh thu
+            if (rowNet >= 0) L.slDebit = maxAbs(L.slDebit, r.sl);
+            else L.slCredit = maxAbs(L.slCredit, r.sl);
+
             if (r.dvt && !L.dvt) L.dvt = r.dvt;
             if (r.isNvkd) L.isNvkd = true;
         } else {
@@ -1559,19 +1571,23 @@ function buildLines(slice) {
         if (net === 0) return;
 
         if (L.kind === "prod") {
-            const absSl = Math.abs(L.sl);
             if (net > 0) {
+                // Bán hàng: ưu tiên số lượng ở dòng doanh thu (phía Nợ)
+                const sl = L.slDebit !== 0 ? L.slDebit : L.slCredit;
                 out.push({
                     date: L.date,
                     label: L.isNvkd ? "Thu tiền từ NVKD" : ("Bán hàng " + L.ten),
                     dvt: L.dvt || "",
-                    sl: L.sl,
-                    price: L.sl ? Math.round(net / L.sl) : 0,
+                    sl: sl,
+                    price: sl ? Math.round(net / sl) : 0,
                     debit: net,
                     credit: 0
                 });
             } else {
-                const isReturn = L.sl < 0 || /trả lại|thu lại/i.test(L.general || L.ten || "");
+                // Trả lại hàng / giảm giá: ưu tiên số lượng phía Có
+                const sl = L.slCredit !== 0 ? L.slCredit : L.slDebit;
+                const absSl = Math.abs(sl);
+                const isReturn = sl < 0 || /trả lại|thu lại/i.test(L.general || L.ten || "");
                 const unitPrice = absSl ? Math.round(Math.abs(net) / absSl) : 0;
                 out.push({
                     date: L.date,
