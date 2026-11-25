@@ -1539,7 +1539,7 @@ function showDetail(r) {
 
     detail.appendChild(document.createElement("hr"));
 
-    // --- Khối Biên bản ĐCCN (gộp trạng thái + link xem biên bản) ---
+    // --- Dòng 1: Biên bản ĐCCN ---
     const bbText = String(r.bb || "").trim();
     const bbkyText = String(r.bbky || "").trim();
     const pBb = document.createElement("p");
@@ -1577,40 +1577,44 @@ function showDetail(r) {
     }
     detail.appendChild(pBb);
 
-    // --- Khối Hóa đơn VAT (đồng bộ số tiền + trạng thái/link) ---
+    // --- Dòng 2: Tổng tiền đã xuất VAT ---
     const vatRaw = String(r.vat || "").trim();
     const vatNum = toNumber(vatRaw);
+    const pVatMoney = document.createElement("p");
+    const lblVatMoney = document.createElement("span");
+    lblVatMoney.className = "label";
+    lblVatMoney.textContent = "Tổng tiền đã xuất VAT: ";
+    pVatMoney.appendChild(lblVatMoney);
+
+    if (vatNum !== 0) {
+        pVatMoney.appendChild(document.createTextNode(formatNumber(vatNum) + " đ"));
+    } else {
+        pVatMoney.appendChild(document.createTextNode(vatRaw && vatRaw !== "-" ? vatRaw : "Chưa cập nhật"));
+    }
+    detail.appendChild(pVatMoney);
+
+    // --- Dòng 3: Hóa đơn VAT ---
     const hdvatText = String(r.hdvat || "").trim();
-    const pVat = document.createElement("p");
-    const lblVat = document.createElement("span");
-    lblVat.className = "label";
-    lblVat.textContent = "Hóa đơn VAT: ";
-    pVat.appendChild(lblVat);
+    const pHdVat = document.createElement("p");
+    const lblHdVat = document.createElement("span");
+    lblHdVat.className = "label";
+    lblHdVat.textContent = "Hóa đơn VAT: ";
+    pHdVat.appendChild(lblHdVat);
 
-    if (vatNum > 0 || hdvatText) {
-        const amountText = vatNum > 0 ? formatNumber(vatNum) + " đ" : "0 đ";
-        pVat.appendChild(document.createTextNode(amountText + " "));
-
-        if (hdvatText) {
-            if (!appendPillLinks(pVat, hdvatText, "Xem hóa đơn")) {
-                const badge = document.createElement("span");
-                badge.className = "detail-status-badge muted";
-                badge.textContent = hdvatText;
-                pVat.appendChild(badge);
-            }
-        } else {
+    if (hdvatText) {
+        if (!appendPillLinks(pHdVat, hdvatText, "Xem hóa đơn")) {
             const badge = document.createElement("span");
             badge.className = "detail-status-badge muted";
-            badge.textContent = "Chưa cập nhật";
-            pVat.appendChild(badge);
+            badge.textContent = hdvatText;
+            pHdVat.appendChild(badge);
         }
     } else {
         const badge = document.createElement("span");
         badge.className = "detail-status-badge muted";
         badge.textContent = "Chưa cập nhật";
-        pVat.appendChild(badge);
+        pHdVat.appendChild(badge);
     }
-    detail.appendChild(pVat);
+    detail.appendChild(pHdVat);
 
     // --- Nút mở biên bản đối chiếu ---
     const btnWrap = document.createElement("div");
