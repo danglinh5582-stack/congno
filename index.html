@@ -687,58 +687,7 @@ tbody tr:hover {
     }
 
 }
-/* ================= TỐI ƯU KHỐI ĐCCN, VAT & NÚT ĐỐI CHIẾU ================= */
 
-.detail-status-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 999px;
-    font-size: 18px;
-    font-weight: bold;
-    background: #dcfce7;
-    color: #166534;
-    vertical-align: middle;
-}
-
-.detail-status-badge.muted {
-    background: #f1f5f9;
-    color: #475569;
-    font-weight: 600;
-}
-
-.detail-link-pill {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 3px 10px;
-    border-radius: 6px;
-    border: 1px solid #0f4c81;
-    background: #eff6ff;
-    color: #0f4c81;
-    font-size: 18px;
-    font-weight: bold;
-    text-decoration: none;
-    vertical-align: middle;
-}
-
-.detail-link-pill:hover {
-    background: #0f4c81;
-    color: #fff;
-}
-
-.detail-sub-note {
-    color: #555;
-    font-size: 21px;
-}
-
-.dc-btn-wrap {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid #e2e8f0;
-}
-
-.dc-btn-wrap .dc-btn-open {
-    margin-top: 0;
-}
 </style>
 </head>
 
@@ -1442,50 +1391,6 @@ function appendFileLinks(parent, raw, linkText) {
 
 // ================= CHI TIẾT KHÁCH HÀNG =================
 
-function appendPillLinks(parent, raw, linkText) {
-    const text = String(raw || "").trim();
-    const re = /https?:\/\/[^\s"'<>]+/gi;
-    const matches = [];
-    const seen = new Set();
-    let last = 0, m;
-
-    while ((m = re.exec(text)) !== null) {
-        const url = m[0].replace(/[,;|)\]]+$/, "");
-        const prefix = text.slice(last, m.index)
-            .replace(/^[\s;,|:=\-–>)\]]+/, "")
-            .replace(/[\s;,|:=\-–>(\[]+$/, "")
-            .replace(/\s*[\r\n]+\s*/g, " ")
-            .trim();
-        last = m.index + m[0].length;
-        if (!seen.has(url)) {
-            seen.add(url);
-            matches.push({ url, prefix });
-        }
-    }
-
-    if (!matches.length) return false;
-
-    const base = linkText || "Xem file";
-    matches.forEach((item, idx) => {
-        if (idx > 0) parent.appendChild(document.createTextNode(" "));
-        if (item.prefix) {
-            const note = document.createElement("span");
-            note.className = "detail-sub-note";
-            note.textContent = item.prefix + " ";
-            parent.appendChild(note);
-        }
-        const a = document.createElement("a");
-        a.href = item.url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        a.className = "detail-link-pill";
-        a.textContent = base;
-        parent.appendChild(a);
-    });
-
-    return true;
-}
-
 function showDetail(r) {
     document.getElementById("modal").style.display = "block";
 
@@ -1499,7 +1404,7 @@ function showDetail(r) {
     const cleanSdt = (r.sdt || "").trim();
     const sdtDisplay = cleanSdt && cleanSdt !== "0" ? cleanSdt : "Chưa cập nhật";
 
-    const mainFields = [
+    const fields = [
         ["Mã KH:", r.ma],
         ["Số điện thoại:", sdtDisplay, true],
         ["Địa chỉ:", r.diachi],
@@ -1510,11 +1415,15 @@ function showDetail(r) {
         ["Tổng công nợ quá hạn:", r.tongqh],
         ["Dư nợ cuối ngày:", r.duno],
         ["Ngày thanh toán gần nhất:", formatDateDDMMYY(r.thanhtoan)],
-        ["Ngày mua hàng gần nhất:", formatDateDDMMYY(r.muahang)]
+        ["Ngày mua hàng gần nhất:", formatDateDDMMYY(r.muahang)],
+        ["Biên bản đối chiếu công nợ:", r.bb, false, true],
+        ["Biên bản ĐCCN đã ký:", r.bbky, false, true, "Xem biên bản đã ký"],
+        ["Tổng số tiền đã xuất VAT:", r.vat],
+        ["Hóa đơn VAT:", r.hdvat, false, true, "Xem hóa đơn"]
     ];
 
-    mainFields.forEach((item, index) => {
-        if (index === 4 || index === 9) {
+    fields.forEach((item, index) => {
+        if (index === 4 || index === 9 || index === 11) {
             detail.appendChild(document.createElement("hr"));
         }
 
@@ -1526,10 +1435,12 @@ function showDetail(r) {
 
         if (item[2] && item[1] !== "Chưa cập nhật") {
             const link = document.createElement("a");
-            link.href = "tel:" + item[1].replace(/[^0-9+]/g, "");
+            link.href = "tel:" + item[1].replace(/[^0-9+]/g, '');
             link.className = "phone-link";
             link.textContent = item[1];
             p.appendChild(link);
+        } else if (item[3] && appendFileLinks(p, item[1], item[4])) {
+            // đã hiển thị link xem file (xem hàm appendFileLinks)
         } else {
             p.appendChild(document.createTextNode(item[1] || "Chưa cập nhật"));
         }
@@ -1537,97 +1448,12 @@ function showDetail(r) {
         detail.appendChild(p);
     });
 
-    detail.appendChild(document.createElement("hr"));
-
-    // --- Dòng 1: Biên bản ĐCCN ---
-    const bbText = String(r.bb || "").trim();
-    const bbkyText = String(r.bbky || "").trim();
-    const pBb = document.createElement("p");
-    const lblBb = document.createElement("span");
-    lblBb.className = "label";
-    lblBb.textContent = "Biên bản ĐCCN: ";
-    pBb.appendChild(lblBb);
-
-    const hasSigned = /đã ký/i.test(bbText) || /https?:\/\//i.test(bbkyText);
-    if (bbText && !/https?:\/\//i.test(bbText)) {
-        const badge = document.createElement("span");
-        badge.className = "detail-status-badge" + (hasSigned ? "" : " muted");
-        badge.textContent = bbText;
-        pBb.appendChild(badge);
-    } else if (hasSigned) {
-        const badge = document.createElement("span");
-        badge.className = "detail-status-badge";
-        badge.textContent = "Đã ký";
-        pBb.appendChild(badge);
-    } else {
-        const badge = document.createElement("span");
-        badge.className = "detail-status-badge muted";
-        badge.textContent = "Chưa cập nhật";
-        pBb.appendChild(badge);
-    }
-
-    if (bbkyText) {
-        pBb.appendChild(document.createTextNode(" "));
-        if (!appendPillLinks(pBb, bbkyText, "Xem biên bản đã ký")) {
-            const note = document.createElement("span");
-            note.className = "detail-sub-note";
-            note.textContent = "(" + bbkyText + ")";
-            pBb.appendChild(note);
-        }
-    }
-    detail.appendChild(pBb);
-
-    // --- Dòng 2: Tổng tiền đã xuất VAT ---
-    const vatRaw = String(r.vat || "").trim();
-    const vatNum = toNumber(vatRaw);
-    const pVatMoney = document.createElement("p");
-    const lblVatMoney = document.createElement("span");
-    lblVatMoney.className = "label";
-    lblVatMoney.textContent = "Tổng tiền đã xuất VAT: ";
-    pVatMoney.appendChild(lblVatMoney);
-
-    if (vatNum !== 0) {
-        pVatMoney.appendChild(document.createTextNode(formatNumber(vatNum) + " đ"));
-    } else {
-        pVatMoney.appendChild(document.createTextNode(vatRaw && vatRaw !== "-" ? vatRaw : "Chưa cập nhật"));
-    }
-    detail.appendChild(pVatMoney);
-
-    // --- Dòng 3: Hóa đơn VAT ---
-    const hdvatText = String(r.hdvat || "").trim();
-    const pHdVat = document.createElement("p");
-    const lblHdVat = document.createElement("span");
-    lblHdVat.className = "label";
-    lblHdVat.textContent = "Hóa đơn VAT: ";
-    pHdVat.appendChild(lblHdVat);
-
-    if (hdvatText) {
-        if (!appendPillLinks(pHdVat, hdvatText, "Xem hóa đơn")) {
-            const badge = document.createElement("span");
-            badge.className = "detail-status-badge muted";
-            badge.textContent = hdvatText;
-            pHdVat.appendChild(badge);
-        }
-    } else {
-        const badge = document.createElement("span");
-        badge.className = "detail-status-badge muted";
-        badge.textContent = "Chưa cập nhật";
-        pHdVat.appendChild(badge);
-    }
-    detail.appendChild(pHdVat);
-
-    // --- Nút mở biên bản đối chiếu ---
-    const btnWrap = document.createElement("div");
-    btnWrap.className = "dc-btn-wrap";
-
     const dcBtn = document.createElement("button");
     dcBtn.type = "button";
     dcBtn.className = "dc-btn-open";
-    dcBtn.textContent = "🧾 Đối chiếu công nợ";
+    dcBtn.textContent = "Đối chiếu công nợ";
     dcBtn.onclick = () => openRecon(r);
-
-    btnWrap.appendChild(dcBtn);
-    detail.appendChild(btnWrap);
+    detail.appendChild(dcBtn);
 }
 
 // ================= ĐỐI CHIẾU CÔNG NỢ =================
@@ -2173,12 +1999,10 @@ async function drawRecon(d, custName) {
 //  - Dòng Cộng + số tiền thanh toán đi cùng dòng hàng cuối.
 //  - Cụm chữ ký + ghi chú + lưu ý luôn đi nguyên cụm, nếu không đủ chỗ thì sang trang mới.
 
-// ---------- Vẽ biên bản nhiều trang A4 dọc (dùng riêng cho file PDF) ----------
-
 async function drawReconPages(d, custName) {
     const qr = await loadQR();
 
-    const SCALE = 2, W = 1100, PH = Math.round(W * 297 / 210), M = 24, PAD = 8, LH = 23, BOTTOM = 24;
+    const SCALE = 2, W = 1100, PH = Math.round(W * 297 / 210), M = 24, PAD = 8, LH = 23, BOTTOM = 30;
     const FONT = '"Times New Roman", "Liberation Serif", Times, serif';
     const f = (px, bold, ital) => (ital ? "italic " : "") + (bold ? "bold " : "") + px + "px " + FONT;
 
@@ -2247,7 +2071,7 @@ async function drawReconPages(d, custName) {
     const headH = 3 * LH + 10;
     const totalH = LH + 14;
 
-    const hdrTop = 6, hdrH = 150, leftW = 430, qrSize = 148;
+    const hdrTop = 20, hdrH = 150, leftW = 430, qrSize = 148;
     const qx = M + leftW + 20;
     const rx = qx + qrSize + 24, rw = W - M - rx;
     const titleLines = wrap("BIÊN BẢN ĐỐI CHIẾU VÀ XÁC NHẬN CÔNG NỢ KIÊM GIẤY GHI NHẬN NỢ CỦA KHÁCH HÀNG", f(22, true), rw);
@@ -2273,7 +2097,7 @@ async function drawReconPages(d, custName) {
     const signH = sigHeaderH + sigSpaceH + belowSigH + noteBoxH + 14 + 26 + (note1Lines.length + note2Lines.length) * 22 + 6;
     const totalsH = totalH + 20 + 32 + 46;
 
-    const topH = hdrTop + hdrH + 12 + custH + 6 + 30;
+    const topH = hdrTop + hdrH + 14 + custH + 6 + 30;
 
     const items = rows.map(r => ({ type: "row", r, h: r.h }));
     if (items.length) {
@@ -2292,7 +2116,7 @@ async function drawReconPages(d, custName) {
         if (y + it.h > limit && pg.length) {
             pg = [];
             pages.push(pg);
-            y = topH + headH;
+            y = topH;
         }
         pg.push({ it, y });
         y += it.h;
@@ -2329,7 +2153,7 @@ async function drawReconPages(d, custName) {
         const tTop = hdrTop + (hdrH - titleLines.length * 30) / 2 + 10;
         titleLines.forEach((t, i) => text(t, rx + rw / 2, tTop + i * 30 + 15, f(22, true), "center"));
 
-        let yy = hdrTop + hdrH + 12;
+        let yy = hdrTop + hdrH + 14;
         text(custLabel, M, yy + 17, f(21, true), "left");
         nameLines.forEach((t, i) => text(t, nameX, yy + 17 + i * 28, f(23, true), "left"));
         text(dateText, W - M, yy + 17, f(19, false, true), "right");
@@ -2339,11 +2163,12 @@ async function drawReconPages(d, custName) {
         text(sOpen, colX[7] + cw[7] - PAD, yy + 15, BOLD, "right");
         yy += 30;
 
-        // Lặp lại tiêu đề cột ở mọi trang có nội dung
-        for (let k = 0; k < 8; k++) {
-            cell(k, yy, headH);
-            if (k === 7) headPay.forEach((t, i) => text(t, colX[k] + cw[k] / 2, yy + 5 + LH * i + LH / 2, BOLD, "center"));
-            else text(heads[k], colX[k] + cw[k] / 2, yy + headH / 2, BOLD, "center");
+        if (pi === 0) {
+            for (let k = 0; k < 8; k++) {
+                cell(k, yy, headH);
+                if (k === 7) headPay.forEach((t, i) => text(t, colX[k] + cw[k] / 2, yy + 5 + LH * i + LH / 2, BOLD, "center"));
+                else text(heads[k], colX[k] + cw[k] / 2, yy + headH / 2, BOLD, "center");
+            }
         }
 
         const drawRow = (r, ry) => {
@@ -2433,7 +2258,7 @@ async function drawReconPages(d, custName) {
         });
 
         if (pages.length > 1) {
-            text("Trang " + (pi + 1) + "/" + pages.length, W - M, PH - 10, f(14, false, true), "right", "#666");
+            text("Trang " + (pi + 1) + "/" + pages.length, W - M, PH - 12, f(14, false, true), "right", "#666");
         }
     };
 
@@ -2481,14 +2306,15 @@ async function exportReconPdf() {
         });
 
         const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
         const marginX = 6;
-        const topMarginMm = 10; // Khoảng cách lề trên khoảng 1.0cm
         const imgW = pageW - marginX * 2;
         const imgH = imgW * canvases[0].height / canvases[0].width;
+        const y = Math.max(0, (pageH - imgH) / 2);
 
         canvases.forEach((cv, i) => {
             if (i > 0) pdf.addPage("a4", "portrait");
-            pdf.addImage(cv.toDataURL("image/png"), "PNG", marginX, topMarginMm, imgW, imgH, undefined, "FAST");
+            pdf.addImage(cv.toDataURL("image/png"), "PNG", marginX, y, imgW, imgH, undefined, "FAST");
         });
 
         pdf.setProperties({
