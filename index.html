@@ -2173,10 +2173,12 @@ async function drawRecon(d, custName) {
 //  - Dòng Cộng + số tiền thanh toán đi cùng dòng hàng cuối.
 //  - Cụm chữ ký + ghi chú + lưu ý luôn đi nguyên cụm, nếu không đủ chỗ thì sang trang mới.
 
+// ---------- Vẽ biên bản nhiều trang A4 dọc (dùng riêng cho file PDF) ----------
+
 async function drawReconPages(d, custName) {
     const qr = await loadQR();
 
-    const SCALE = 2, W = 1100, PH = Math.round(W * 297 / 210), M = 24, PAD = 8, LH = 23, BOTTOM = 30;
+    const SCALE = 2, W = 1100, PH = Math.round(W * 297 / 210), M = 24, PAD = 8, LH = 23, BOTTOM = 24;
     const FONT = '"Times New Roman", "Liberation Serif", Times, serif';
     const f = (px, bold, ital) => (ital ? "italic " : "") + (bold ? "bold " : "") + px + "px " + FONT;
 
@@ -2245,7 +2247,7 @@ async function drawReconPages(d, custName) {
     const headH = 3 * LH + 10;
     const totalH = LH + 14;
 
-    const hdrTop = 20, hdrH = 150, leftW = 430, qrSize = 148;
+    const hdrTop = 6, hdrH = 150, leftW = 430, qrSize = 148;
     const qx = M + leftW + 20;
     const rx = qx + qrSize + 24, rw = W - M - rx;
     const titleLines = wrap("BIÊN BẢN ĐỐI CHIẾU VÀ XÁC NHẬN CÔNG NỢ KIÊM GIẤY GHI NHẬN NỢ CỦA KHÁCH HÀNG", f(22, true), rw);
@@ -2271,7 +2273,7 @@ async function drawReconPages(d, custName) {
     const signH = sigHeaderH + sigSpaceH + belowSigH + noteBoxH + 14 + 26 + (note1Lines.length + note2Lines.length) * 22 + 6;
     const totalsH = totalH + 20 + 32 + 46;
 
-    const topH = hdrTop + hdrH + 14 + custH + 6 + 30;
+    const topH = hdrTop + hdrH + 12 + custH + 6 + 30;
 
     const items = rows.map(r => ({ type: "row", r, h: r.h }));
     if (items.length) {
@@ -2290,7 +2292,7 @@ async function drawReconPages(d, custName) {
         if (y + it.h > limit && pg.length) {
             pg = [];
             pages.push(pg);
-            y = topH;
+            y = topH + headH;
         }
         pg.push({ it, y });
         y += it.h;
@@ -2327,7 +2329,7 @@ async function drawReconPages(d, custName) {
         const tTop = hdrTop + (hdrH - titleLines.length * 30) / 2 + 10;
         titleLines.forEach((t, i) => text(t, rx + rw / 2, tTop + i * 30 + 15, f(22, true), "center"));
 
-        let yy = hdrTop + hdrH + 14;
+        let yy = hdrTop + hdrH + 12;
         text(custLabel, M, yy + 17, f(21, true), "left");
         nameLines.forEach((t, i) => text(t, nameX, yy + 17 + i * 28, f(23, true), "left"));
         text(dateText, W - M, yy + 17, f(19, false, true), "right");
@@ -2337,12 +2339,11 @@ async function drawReconPages(d, custName) {
         text(sOpen, colX[7] + cw[7] - PAD, yy + 15, BOLD, "right");
         yy += 30;
 
-        if (pi === 0) {
-            for (let k = 0; k < 8; k++) {
-                cell(k, yy, headH);
-                if (k === 7) headPay.forEach((t, i) => text(t, colX[k] + cw[k] / 2, yy + 5 + LH * i + LH / 2, BOLD, "center"));
-                else text(heads[k], colX[k] + cw[k] / 2, yy + headH / 2, BOLD, "center");
-            }
+        // Lặp lại tiêu đề cột ở mọi trang có nội dung
+        for (let k = 0; k < 8; k++) {
+            cell(k, yy, headH);
+            if (k === 7) headPay.forEach((t, i) => text(t, colX[k] + cw[k] / 2, yy + 5 + LH * i + LH / 2, BOLD, "center"));
+            else text(heads[k], colX[k] + cw[k] / 2, yy + headH / 2, BOLD, "center");
         }
 
         const drawRow = (r, ry) => {
@@ -2432,7 +2433,7 @@ async function drawReconPages(d, custName) {
         });
 
         if (pages.length > 1) {
-            text("Trang " + (pi + 1) + "/" + pages.length, W - M, PH - 12, f(14, false, true), "right", "#666");
+            text("Trang " + (pi + 1) + "/" + pages.length, W - M, PH - 10, f(14, false, true), "right", "#666");
         }
     };
 
@@ -2480,15 +2481,14 @@ async function exportReconPdf() {
         });
 
         const pageW = pdf.internal.pageSize.getWidth();
-        const pageH = pdf.internal.pageSize.getHeight();
         const marginX = 6;
+        const topMarginMm = 10; // Khoảng cách lề trên khoảng 1.0cm
         const imgW = pageW - marginX * 2;
         const imgH = imgW * canvases[0].height / canvases[0].width;
-        const y = Math.max(0, (pageH - imgH) / 2);
 
         canvases.forEach((cv, i) => {
             if (i > 0) pdf.addPage("a4", "portrait");
-            pdf.addImage(cv.toDataURL("image/png"), "PNG", marginX, y, imgW, imgH, undefined, "FAST");
+            pdf.addImage(cv.toDataURL("image/png"), "PNG", marginX, topMarginMm, imgW, imgH, undefined, "FAST");
         });
 
         pdf.setProperties({
