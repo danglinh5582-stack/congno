@@ -1346,24 +1346,46 @@ document.getElementById("overdueOnly").addEventListener("change", render);
 
 // ================= LINK XEM FILE (PDF) =================
 
-// Tìm tất cả đường dẫn http(s) trong ô. Nếu có -> tạo link bấm mở tab mới và trả về true.
-// Nếu ô chỉ có chữ thường (không có link) -> trả về false để hiển thị chữ như cũ.
+// Mỗi ô có thể chứa 1 hoặc nhiều mục. Mỗi mục gồm: MÔ TẢ + LINK, ví dụ:
+//     Ngày 23.11.26 https://drive.google.com/file/d/xxx/view
+// Hiển thị:  Ngày 23.11.26 (Xem biên bản đã ký); Ngày 05.12.26 (Xem biên bản đã ký)
+// Chữ đứng trước mỗi link là mô tả của mục đó; các mục có thể cách nhau bằng
+// xuống dòng (Alt+Enter), dấu ; hoặc khoảng trắng. Không có mô tả thì chỉ hiện (Xem ...).
+// Trả về true nếu có ít nhất một link; false nếu ô trống / chỉ có chữ thường.
 function appendFileLinks(parent, raw, linkText) {
     const text = String(raw || "").trim();
-    const urls = text.match(/https?:\/\/[^\s,;"'<>]+/gi);
-    if (!urls || !urls.length) return false;
+    const re = /https?:\/\/[^\s"'<>]+/gi;
+    const entries = [];
+    const seen = new Set();
+    let last = 0, m;
 
-    const uniq = [...new Set(urls)];
-    uniq.forEach((u, i) => {
-        if (i > 0) parent.appendChild(document.createTextNode("  |  "));
+    while ((m = re.exec(text)) !== null) {
+        const url = m[0].replace(/[,;|)\]]+$/, "");
+        let label = text.slice(last, m.index)
+            .replace(/^[\s;,|:=\-–>)\]]+/, "")
+            .replace(/[\s;,|:=\-–>(\[]+$/, "")
+            .replace(/\s*[\r\n]+\s*/g, " ")
+            .trim();
+        last = m.index + m[0].length;
+        if (seen.has(url)) continue;
+        seen.add(url);
+        entries.push({ url, label });
+    }
+
+    if (!entries.length) return false;
+
+    const base = linkText || "Xem file";
+    entries.forEach((en, i) => {
+        if (i > 0) parent.appendChild(document.createTextNode("; "));
+        if (en.label) parent.appendChild(document.createTextNode(en.label + " ("));
         const a = document.createElement("a");
-        a.href = u;
+        a.href = en.url;
         a.target = "_blank";
         a.rel = "noopener noreferrer";
         a.className = "phone-link";
-        const base = linkText || "Xem file";
-        a.textContent = uniq.length > 1 ? base + " " + (i + 1) : base;
+        a.textContent = base;
         parent.appendChild(a);
+        if (en.label) parent.appendChild(document.createTextNode(")"));
     });
     return true;
 }
@@ -1399,7 +1421,7 @@ function showDetail(r) {
         ["Ngày đối chiếu công nợ:", r.ngaydc],
         ["Biên bản ĐCCN đã ký:", r.bbky, false, true, "Xem biên bản đã ký"],
         ["Tổng số tiền đã xuất VAT:", r.vat],
-        ["Hóa đơn VAT:", r.hdvat, false, true, "Xem hóa đơn VAT"]
+        ["Hóa đơn VAT:", r.hdvat, false, true, "Xem hóa đơn"]
     ];
 
     fields.forEach((item, index) => {
