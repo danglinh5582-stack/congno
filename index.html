@@ -1091,9 +1091,11 @@ function ingest(rows) {
             duno: vn(9),
             thanhtoan: formatDateDDMMYY(s(10)),
             muahang: formatDateDDMMYY(s(11)),
-            bb: s(12),
-            ngaydc: formatDateDDMMYY(s(13)),
-            vat: vn(14)
+            bb: s(12),                          // Cột M: BIÊN BẢN ĐỐI CHIẾU
+            ngaydc: formatDateDDMMYY(s(13)),    // Cột N: Ngày đối chiếu công nợ
+            bbky: s(14),                        // Cột O: BIÊN BẢN ĐCCN ĐÃ KÝ (link PDF)
+            vat: vn(15),                        // Cột P: TỔNG SỐ TIỀN ĐÃ XUẤT VAT
+            hdvat: s(16)                        // Cột Q: HÓA ĐƠN VAT (link PDF)
         });
     });
 
@@ -1342,6 +1344,30 @@ document.getElementById("searchInput").addEventListener("input", render);
 document.getElementById("nvkdFilter").addEventListener("change", render);
 document.getElementById("overdueOnly").addEventListener("change", render);
 
+// ================= LINK XEM FILE (PDF) =================
+
+// Tìm tất cả đường dẫn http(s) trong ô. Nếu có -> tạo link bấm mở tab mới và trả về true.
+// Nếu ô chỉ có chữ thường (không có link) -> trả về false để hiển thị chữ như cũ.
+function appendFileLinks(parent, raw, linkText) {
+    const text = String(raw || "").trim();
+    const urls = text.match(/https?:\/\/[^\s,;"'<>]+/gi);
+    if (!urls || !urls.length) return false;
+
+    const uniq = [...new Set(urls)];
+    uniq.forEach((u, i) => {
+        if (i > 0) parent.appendChild(document.createTextNode("  |  "));
+        const a = document.createElement("a");
+        a.href = u;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.className = "phone-link";
+        const base = linkText || "Xem file";
+        a.textContent = uniq.length > 1 ? base + " " + (i + 1) : base;
+        parent.appendChild(a);
+    });
+    return true;
+}
+
 // ================= CHI TIẾT KHÁCH HÀNG =================
 
 function showDetail(r) {
@@ -1369,9 +1395,11 @@ function showDetail(r) {
         ["Dư nợ cuối ngày:", r.duno],
         ["Ngày thanh toán gần nhất:", formatDateDDMMYY(r.thanhtoan)],
         ["Ngày mua hàng gần nhất:", formatDateDDMMYY(r.muahang)],
-        ["Biên bản đối chiếu công nợ:", r.bb],
+        ["Biên bản đối chiếu công nợ:", r.bb, false, true],
         ["Ngày đối chiếu công nợ:", r.ngaydc],
-        ["Tổng số tiền đã xuất VAT:", r.vat]
+        ["Biên bản ĐCCN đã ký:", r.bbky, false, true, "Xem biên bản đã ký"],
+        ["Tổng số tiền đã xuất VAT:", r.vat],
+        ["Hóa đơn VAT:", r.hdvat, false, true, "Xem hóa đơn VAT"]
     ];
 
     fields.forEach((item, index) => {
@@ -1391,6 +1419,8 @@ function showDetail(r) {
             link.className = "phone-link";
             link.textContent = item[1];
             p.appendChild(link);
+        } else if (item[3] && appendFileLinks(p, item[1], item[4])) {
+            // đã hiển thị link xem file (xem hàm appendFileLinks)
         } else {
             p.appendChild(document.createTextNode(item[1] || "Chưa cập nhật"));
         }
