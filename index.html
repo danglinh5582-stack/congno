@@ -7,6 +7,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 
 <style>
 
@@ -687,16 +688,21 @@ tbody tr:hover {
     }
 
 }
+
 /* ================= CHỤP BIÊN BẢN ĐÃ KÝ ================= */
+
 .cap-modal { z-index: 1150; }
 .cap-box {
-    background: #fff; max-width: 700px; width: 100%;
+    background: #fff; max-width: 760px; width: 100%;
     margin: 20px auto; padding: 22px; border-radius: 12px;
     font-size: 21px; line-height: 1.6;
 }
 .cap-box h2 { font-size: 26px; color: #0f4c81; margin: 6px 0 14px; }
 .cap-box p { margin: 12px 0; }
 .cap-box input[type=date], .cap-box input[type=password] { min-width: 0; width: 100%; margin-top: 6px; }
+.cap-opts { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0; font-size: 19px; }
+.cap-opts label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.cap-opts input[type=checkbox] { min-width: 0; width: 22px; height: 22px; padding: 0; }
 .cap-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
 .cap-btn {
     flex: 1; min-width: 200px; text-align: center; padding: 14px;
@@ -704,22 +710,50 @@ tbody tr:hover {
     font-size: 21px; font-weight: bold; cursor: pointer;
 }
 .cap-btn.alt { background: #5a6b7b; }
-.cap-thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
-.cap-thumb { position: relative; width: 110px; }
-.cap-thumb img { width: 100%; display: block; border: 1px solid #ccc; }
-.cap-thumb .no { position: absolute; left: 0; bottom: 0; background: #0f4c81; color: #fff; font-size: 15px; padding: 1px 7px; }
-.cap-thumb button {
-    position: absolute; top: -8px; right: -8px; width: 28px; height: 28px;
-    border: 0; border-radius: 50%; background: #c0392b; color: #fff;
-    font-size: 18px; line-height: 1; cursor: pointer;
+.cap-hint { font-size: 16px; color: #555; }
+.cap-thumbs { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0; }
+.cap-thumb { position: relative; width: 150px; }
+.cap-thumb img { width: 100%; display: block; border: 1px solid #ccc; background: #fff; min-height: 60px; }
+.cap-thumb .no { position: absolute; left: 0; top: 0; background: #0f4c81; color: #fff; font-size: 15px; padding: 1px 8px; }
+.cap-thumb .tag { display: block; font-size: 14px; line-height: 1.3; margin: 3px 0; padding: 2px 6px; border-radius: 4px; background: #e5e7eb; color: #444; }
+.cap-thumb .tag.ok { background: #d4edda; color: #14532d; }
+.cap-thumb .tag.warn { background: #fff3cd; color: #7a5b00; }
+.cap-thumb .busy {
+    position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+    background: rgba(255,255,255,.82); display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: bold; text-align: center; color: #0f4c81;
 }
+.cap-ctl { display: flex; gap: 4px; margin-top: 4px; }
+.cap-ctl button {
+    flex: 1; padding: 6px 0; border: 1px solid #aab; border-radius: 6px;
+    background: #f3f4f6; font-size: 17px; cursor: pointer; color: #222;
+}
+.cap-ctl button.del { background: #fdecea; color: #c0392b; border-color: #f0b4ae; }
+.cap-ctl button:disabled { opacity: .35; cursor: default; }
+.cap-warn { margin: 8px 0; }
+.cap-warn div { padding: 8px 10px; border-radius: 6px; margin: 6px 0; font-size: 17px; line-height: 1.4; }
+.cap-warn .err { background: #fdecea; color: #7a1f16; border: 1px solid #f0b4ae; }
+.cap-warn .warn { background: #fff3cd; color: #7a5b00; border: 1px solid #ecd98a; }
+.cap-warn .info { background: #e8f1fb; color: #0b3961; border: 1px solid #b9d3ee; }
 .cap-name { font-size: 17px; color: #555; word-break: break-all; background: #f3f4f6; padding: 8px 10px; border-radius: 6px; }
-#capStatus { margin-top: 12px; font-size: 19px; font-weight: bold; }
-#capStatus.err { color: #c0392b; }
-#capStatus.ok { color: #1e7e34; }
+#cpStatus { margin-top: 12px; font-size: 19px; font-weight: bold; }
+#cpStatus.err { color: #c0392b; }
+#cpStatus.ok { color: #1e7e34; }
 .dc-btn-open.green { background: #1e7e34; }
 .dc-btn-open.green:hover { background: #166028; }
 .dc-btn-open:disabled { opacity: .5; cursor: default; }
+
+.ed-modal { z-index: 1200; }
+.ed-box { background: #fff; max-width: 940px; margin: 10px auto; padding: 14px; border-radius: 12px; }
+.ed-box canvas { display: block; margin: 8px auto; max-width: 100%; height: auto; touch-action: none; border: 1px solid #888; }
+.ed-box .ed-help { font-size: 17px; color: #444; }
+.ed-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.ed-bar button {
+    flex: 1; min-width: 130px; padding: 12px; font-size: 18px; font-weight: bold;
+    border: 0; border-radius: 8px; cursor: pointer; background: #0f4c81; color: #fff;
+}
+.ed-bar button.gray { background: #5a6b7b; }
+
 </style>
 </head>
 
@@ -858,38 +892,60 @@ tbody tr:hover {
 
     </div>
 </div>
+
 <!-- CHỤP BIÊN BẢN ĐỐI CHIẾU ĐÃ KÝ -->
-<div class="modal cap-modal" id="capModal">
+<div class="modal cap-modal" id="cpModal">
     <div class="cap-box">
-        <span class="close" id="capX">×</span>
+        <span class="close" id="cpX">×</span>
         <h2>Chụp biên bản đối chiếu đã ký</h2>
-        <div id="capCust" style="font-weight:bold"></div>
- 
+        <div id="cpCust" style="font-weight:bold"></div>
+
         <p>
             <span class="label">Ngày biên bản đối chiếu:</span>
-            <input type="date" id="capDate">
+            <input type="date" id="cpDate">
         </p>
         <p>
             <span class="label">Mã nhân viên:</span>
-            <input type="password" id="capCode" placeholder="Nhập mã nhân viên" autocomplete="off">
+            <input type="password" id="cpCode" placeholder="Nhập mã nhân viên" autocomplete="off">
         </p>
- 
+
+        <div class="cap-opts">
+            <label><input type="checkbox" id="cpCrop" checked> Tự cắt khung giấy</label>
+            <label><input type="checkbox" id="cpEnh" checked> Làm rõ chữ (nền trắng)</label>
+        </div>
+
         <div class="cap-actions">
             <label class="cap-btn">📷 Chụp ảnh
-                <input type="file" id="capCam" accept="image/*" capture="environment" hidden>
+                <input type="file" id="cpCam" accept="image/*" capture="environment" hidden>
             </label>
             <label class="cap-btn alt">🖼 Chọn từ thư viện
-                <input type="file" id="capGal" accept="image/*" multiple hidden>
+                <input type="file" id="cpGal" accept="image/*" multiple hidden>
             </label>
         </div>
- 
-        <div class="cap-thumbs" id="capThumbs"></div>
-        <div class="cap-name" id="capName"></div>
- 
-        <button type="button" id="capSend" class="dc-btn-open green" disabled>Lưu biên bản lên hệ thống</button>
-        <div id="capStatus"></div>
+
+        <div class="cap-hint" id="cpLoad"></div>
+        <div class="cap-thumbs" id="cpThumbs"></div>
+        <div class="cap-warn" id="cpWarn"></div>
+        <div class="cap-name" id="cpName"></div>
+
+        <button type="button" id="cpSend" class="dc-btn-open green" disabled>Lưu biên bản lên hệ thống</button>
+        <div id="cpStatus"></div>
     </div>
 </div>
+
+<!-- CHỈNH 4 GÓC KHUNG GIẤY -->
+<div class="modal ed-modal" id="cpEditModal">
+    <div class="ed-box">
+        <div class="ed-help"><b>Kéo 4 chấm xanh</b> về đúng 4 góc tờ giấy, rồi bấm "Áp dụng".</div>
+        <canvas id="cpEdCanvas"></canvas>
+        <div class="ed-bar">
+            <button type="button" id="cpEdOk">Áp dụng</button>
+            <button type="button" id="cpEdFull" class="gray">Không cắt (dùng cả ảnh)</button>
+            <button type="button" id="cpEdCancel" class="gray">Hủy</button>
+        </div>
+    </div>
+</div>
+
 <div class="dc-toast" id="dcToast"></div>
 
 <script>
@@ -1501,7 +1557,7 @@ function showDetail(r) {
             link.className = "phone-link";
             link.textContent = item[1];
             p.appendChild(link);
-       } else if (item[3] && appendFileLinks(p, item[1], item[4], index === 11 ? 3 : 0)) {
+        } else if (item[3] && appendFileLinks(p, item[1], item[4], index === 11 ? 3 : 0)) {
             // đã hiển thị link xem file (xem hàm appendFileLinks)
         } else {
             p.appendChild(document.createTextNode(item[1] || "Chưa cập nhật"));
@@ -1516,7 +1572,7 @@ function showDetail(r) {
     dcBtn.textContent = "Đối chiếu công nợ";
     dcBtn.onclick = () => openRecon(r);
     detail.appendChild(dcBtn);
- 
+
     const capBtn = document.createElement("button");
     capBtn.type = "button";
     capBtn.className = "dc-btn-open";
@@ -2069,10 +2125,10 @@ async function drawRecon(d, custName) {
 //  - Dòng Cộng + số tiền thanh toán đi cùng dòng hàng cuối.
 //  - Cụm chữ ký + ghi chú + lưu ý luôn đi nguyên cụm, nếu không đủ chỗ thì sang trang mới.
 
-async function drawReconPages(d, custName) {
+async function drawReconPages(d, custName, custMa) {
     const qr = await loadQR();
 
-    const SCALE = 2, W = 1100, PH = Math.round(W * 297 / 210), M = 24, PAD = 8, LH = 23, BOTTOM = 30;
+    const SCALE = 2, W = 1100, PH = Math.round(W * 297 / 210), M = 24, PAD = 8, LH = 23, BOTTOM = 124;
     const FONT = '"Times New Roman", "Liberation Serif", Times, serif';
     const f = (px, bold, ital) => (ital ? "italic " : "") + (bold ? "bold " : "") + px + "px " + FONT;
 
@@ -2327,9 +2383,15 @@ async function drawReconPages(d, custName) {
             else if (it.type === "sign") drawSign(iy);
         });
 
-        if (pages.length > 1) {
-            text("Trang " + (pi + 1) + "/" + pages.length, W - M, PH - 12, f(14, false, true), "right", "#666");
+        // Mã QR + số trang ở chân mỗi trang (để tự nhận chiều, xếp trang, kiểm tra đúng khách khi chụp lại)
+        const QS = 100;
+        const qrCv = capMakeQR("DCCN|" + custMa + "|" + (pi + 1) + "/" + pages.length);
+        if (qrCv) {
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(qrCv, M, PH - QS - 14, QS, QS);
+            ctx.imageSmoothingEnabled = true;
         }
+        text("Trang " + (pi + 1) + "/" + pages.length, M + QS + 14, PH - QS / 2 - 14, f(22, true), "left");
     };
 
     return pages.map((_, pi) => {
@@ -2360,7 +2422,7 @@ async function exportReconPdf() {
 
         const d = reconState.model;
         const cust = reconState.cust;
-        const canvases = await drawReconPages(d, cust.ten);
+        const canvases = await drawReconPages(d, cust.ten, cust.ma);
 
         const nowObj = new Date();
         const printDate = pad2(nowObj.getDate()) + "-" +
@@ -2559,91 +2621,579 @@ byId("dcCsv").addEventListener("change", e => {
         refreshRecon();
     });
 });
+
+
 // ================= CHỤP BIÊN BẢN ĐỐI CHIẾU ĐÃ KÝ -> PDF -> DRIVE =================
- 
+
 // Dán link triển khai Apps Script (kết thúc bằng /exec) vào đây:
 const UPLOAD_URL = "DÁN_LINK_WEB_APP_VÀO_ĐÂY";
 const CAP_MAX_PAGES = 10;
- 
-let cap = { cust: null, photos: [], busy: false };
- 
-function capFileName() {
-    const r = cap.cust;
-    const v = byId("capDate").value;          // yyyy-mm-dd
-    if (!r || !v) return "";
-    const p = v.split("-");
-    const d = p[2] + "." + p[1] + "." + p[0].slice(-2);
-    return ("DCCN_" + r.ma + "_" + r.ten + "_" + d).replace(/[\\\/:*?"<>|\r\n]+/g, "-");
+const CAP_MAX_SIDE = 1800;
+
+// Các thư viện nặng chỉ tải khi nhân viên mở màn hình chụp (lần đầu), sau đó trình duyệt tự nhớ
+const CAP_LIBS = {
+    jsqr: [
+        "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",
+        "https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"
+    ],
+    cv: [
+        "https://docs.opencv.org/4.x/opencv.js",
+        "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.9.0-release.1/dist/opencv.js"
+    ],
+    tess: [
+        "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"
+    ]
+};
+
+let cap = newCap(null);
+function newCap(cust) {
+    return { cust: cust, photos: [], busy: false, q: Promise.resolve(), userOrdered: false, autoSorted: false, blocking: false, seq: 0 };
 }
- 
-function capRefresh() {
-    const box = byId("capThumbs");
-    box.innerHTML = "";
-    cap.photos.forEach((p, i) => {
-        const w = document.createElement("div");
-        w.className = "cap-thumb";
-        const im = document.createElement("img");
-        im.src = p.dataUrl;
-        const no = document.createElement("span");
-        no.className = "no";
-        no.textContent = "Trang " + (i + 1);
-        const x = document.createElement("button");
-        x.type = "button";
-        x.textContent = "×";
-        x.onclick = () => { cap.photos.splice(i, 1); capRefresh(); };
-        w.appendChild(im); w.appendChild(no); w.appendChild(x);
-        box.appendChild(w);
-    });
-    const nm = capFileName();
-    byId("capName").textContent = nm ? "Tên file: " + nm + ".pdf" : "";
-    byId("capSend").disabled = cap.busy || !cap.photos.length || !nm;
+
+// ---------- Tải thư viện ----------
+
+const capLibP = {};
+const capLibFail = {};
+
+function capLoadScript(urls) {
+    return urls.reduce((p, u) => p.catch(() => new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = u;
+        s.async = true;
+        s.onload = () => res();
+        s.onerror = () => { s.remove(); rej(new Error("Không tải được " + u)); };
+        document.head.appendChild(s);
+    })), Promise.reject(new Error("start")));
 }
- 
-function capStatus(msg, cls) {
-    const s = byId("capStatus");
-    s.textContent = msg || "";
-    s.className = cls || "";
-}
- 
-function openCapture(r) {
-    cap = { cust: r, photos: [], busy: false };
-    byId("capCust").textContent = r.ma + " - " + r.ten;
-    const t = new Date();
-    byId("capDate").value = t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
-    try { byId("capCode").value = localStorage.getItem("capCode") || ""; } catch (e) {}
-    capStatus("");
-    capRefresh();
-    byId("capModal").style.display = "block";
-}
- 
-function closeCapture() {
-    byId("capModal").style.display = "none";
-}
- 
-// Đọc ảnh, thu nhỏ & nén để file nhẹ (khoảng 200-500 KB / trang)
-function capLoadPhoto(file) {
+
+function capCvReady() {
     return new Promise((resolve, reject) => {
-        const url = URL.createObjectURL(file);
+        let done = false;
+        const ok = m => { if (!done) { done = true; clearTimeout(t); resolve({ cv: m }); } };
+        const bad = e => { if (!done) { done = true; clearTimeout(t); reject(e); } };
+        const t = setTimeout(() => bad(new Error("OpenCV khởi động quá lâu")), 90000);
+        const c = window.cv;
+        if (!c) { bad(new Error("Không có OpenCV")); return; }
+        if (typeof c.then === "function") {
+            c.then(m => { window.cv = m; ok(m); }, bad);
+        } else if (c.Mat) {
+            ok(c);
+        } else {
+            c.onRuntimeInitialized = () => ok(window.cv);
+        }
+    });
+}
+
+function capLib(name) {
+    if (capLibP[name]) return capLibP[name];
+    let p;
+    if (name === "jsqr") {
+        p = typeof window.jsQR === "function" ? Promise.resolve(window.jsQR) : capLoadScript(CAP_LIBS.jsqr).then(() => window.jsQR);
+    } else if (name === "tess") {
+        p = capLoadScript(CAP_LIBS.tess).then(() => window.Tesseract);
+    } else {
+        p = capLoadScript(CAP_LIBS.cv).then(capCvReady);
+    }
+    capLibP[name] = p.then(v => { if (!v) throw new Error("lib " + name); return v; }, e => { capLibFail[name] = true; throw e; });
+    return capLibP[name];
+}
+
+function capCvWait(ms) {
+    return Promise.race([
+        capLib("cv").then(w => w.cv),
+        new Promise(res => setTimeout(() => res(null), ms))
+    ]).catch(() => null);
+}
+
+// ---------- Canvas tiện ích ----------
+
+function capNewCanvas(w, h) {
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(w));
+    c.height = Math.max(1, Math.round(h));
+    return c;
+}
+
+function capLoadImage(url) {
+    return new Promise((res, rej) => {
         const im = new Image();
-        im.onload = () => {
-            const MAX = 1700;
-            let w = im.naturalWidth, h = im.naturalHeight;
-            const k = Math.min(1, MAX / Math.max(w, h));
-            w = Math.round(w * k); h = Math.round(h * k);
-            const c = document.createElement("canvas");
-            c.width = w; c.height = h;
-            const g = c.getContext("2d");
-            g.fillStyle = "#fff";
-            g.fillRect(0, 0, w, h);
-            g.drawImage(im, 0, 0, w, h);
-            URL.revokeObjectURL(url);
-            resolve({ dataUrl: c.toDataURL("image/jpeg", 0.72), w, h });
-        };
-        im.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Không đọc được ảnh")); };
+        im.onload = () => res(im);
+        im.onerror = () => rej(new Error("Không đọc được ảnh"));
         im.src = url;
     });
 }
- 
+
+function capFromImage(im, maxSide) {
+    const k = Math.min(1, maxSide / Math.max(im.naturalWidth, im.naturalHeight));
+    const c = capNewCanvas(im.naturalWidth * k, im.naturalHeight * k);
+    const g = c.getContext("2d");
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, c.width, c.height);
+    g.imageSmoothingQuality = "high";
+    g.drawImage(im, 0, 0, c.width, c.height);
+    return c;
+}
+
+async function capCanvasFromUrl(url) {
+    const im = await capLoadImage(url);
+    const c = capNewCanvas(im.naturalWidth, im.naturalHeight);
+    c.getContext("2d").drawImage(im, 0, 0);
+    return c;
+}
+
+function capScaleTo(src, maxSide) {
+    const k = Math.min(1, maxSide / Math.max(src.width, src.height));
+    if (k >= 1) return src;
+    const c = capNewCanvas(src.width * k, src.height * k);
+    const g = c.getContext("2d");
+    g.imageSmoothingQuality = "high";
+    g.drawImage(src, 0, 0, c.width, c.height);
+    return c;
+}
+
+// Xoay thuận chiều kim đồng hồ deg độ (0/90/180/270)
+function capRotate(src, deg) {
+    deg = ((deg % 360) + 360) % 360;
+    if (!deg) return src;
+    const sw = src.width, sh = src.height;
+    const swap = deg === 90 || deg === 270;
+    const c = capNewCanvas(swap ? sh : sw, swap ? sw : sh);
+    const g = c.getContext("2d");
+    g.translate(c.width / 2, c.height / 2);
+    g.rotate(deg * Math.PI / 180);
+    g.drawImage(src, -sw / 2, -sh / 2);
+    return c;
+}
+
+// ---------- Nắn phẳng tờ giấy (tự viết, không cần OpenCV) ----------
+
+function capSolveH(uv, xy) {
+    const A = [], b = [];
+    for (let i = 0; i < 4; i++) {
+        const u = uv[i][0], v = uv[i][1], x = xy[i][0], y = xy[i][1];
+        A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]); b.push(x);
+        A.push([0, 0, 0, u, v, 1, -u * y, -v * y]); b.push(y);
+    }
+    const n = 8;
+    for (let i = 0; i < n; i++) {
+        let p = i;
+        for (let r = i + 1; r < n; r++) if (Math.abs(A[r][i]) > Math.abs(A[p][i])) p = r;
+        if (Math.abs(A[p][i]) < 1e-12) return null;
+        const ta = A[i]; A[i] = A[p]; A[p] = ta;
+        const tb = b[i]; b[i] = b[p]; b[p] = tb;
+        for (let r = i + 1; r < n; r++) {
+            const f = A[r][i] / A[i][i];
+            for (let c = i; c < n; c++) A[r][c] -= f * A[i][c];
+            b[r] -= f * b[i];
+        }
+    }
+    const h = new Array(n);
+    for (let i = n - 1; i >= 0; i--) {
+        let s = b[i];
+        for (let c = i + 1; c < n; c++) s -= A[i][c] * h[c];
+        h[i] = s / A[i][i];
+    }
+    return h;
+}
+
+// Sắp 4 điểm theo thứ tự: trái-trên, phải-trên, phải-dưới, trái-dưới
+function capOrderPts(pts) {
+    const s = pts.map(p => p.x + p.y);
+    const dd = pts.map(p => p.y - p.x);
+    return [
+        pts[s.indexOf(Math.min.apply(null, s))],
+        pts[dd.indexOf(Math.min.apply(null, dd))],
+        pts[s.indexOf(Math.max.apply(null, s))],
+        pts[dd.indexOf(Math.max.apply(null, dd))]
+    ];
+}
+
+function capQuadArea(q) {
+    let a = 0;
+    for (let i = 0; i < 4; i++) {
+        const p = q[i], n = q[(i + 1) % 4];
+        a += p.x * n.y - n.x * p.y;
+    }
+    return Math.abs(a) / 2;
+}
+
+function capWarp(src, quad) {
+    const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const tl = quad[0], tr = quad[1], br = quad[2], bl = quad[3];
+    let W = Math.max(d(tl, tr), d(bl, br));
+    let H = Math.max(d(tl, bl), d(tr, br));
+    const k = Math.min(1, 2000 / Math.max(W, H));
+    W = Math.round(W * k);
+    H = Math.round(H * k);
+    if (W < 50 || H < 50) return src;
+
+    const h = capSolveH(
+        [[0, 0], [W, 0], [W, H], [0, H]],
+        [[tl.x, tl.y], [tr.x, tr.y], [br.x, br.y], [bl.x, bl.y]]
+    );
+    if (!h) return src;
+
+    const sw = src.width, sh = src.height;
+    const sd = src.getContext("2d").getImageData(0, 0, sw, sh).data;
+    const out = capNewCanvas(W, H);
+    const og = out.getContext("2d");
+    const od = og.createImageData(W, H);
+    const o = od.data;
+
+    for (let v = 0; v < H; v++) {
+        for (let u = 0; u < W; u++) {
+            const den = h[6] * u + h[7] * v + 1;
+            const x = (h[0] * u + h[1] * v + h[2]) / den;
+            const y = (h[3] * u + h[4] * v + h[5]) / den;
+            const idx = (v * W + u) * 4;
+            if (!(x >= 0 && y >= 0 && x < sw - 1 && y < sh - 1)) {
+                o[idx] = o[idx + 1] = o[idx + 2] = 255;
+                o[idx + 3] = 255;
+                continue;
+            }
+            const x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0;
+            const i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
+            for (let c = 0; c < 3; c++) {
+                const top = sd[i00 + c] * (1 - fx) + sd[i10 + c] * fx;
+                const bot = sd[i01 + c] * (1 - fx) + sd[i11 + c] * fx;
+                o[idx + c] = top * (1 - fy) + bot * fy;
+            }
+            o[idx + 3] = 255;
+        }
+    }
+    og.putImageData(od, 0, 0);
+    return out;
+}
+
+// ---------- Tự tìm khung tờ giấy bằng OpenCV ----------
+
+function capBestQuad(cv, bin, total) {
+    const contours = new cv.MatVector();
+    const hier = new cv.Mat();
+    let best = null, bestArea = 0;
+    try {
+        cv.findContours(bin, contours, hier, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+        for (let i = 0; i < contours.size(); i++) {
+            const cnt = contours.get(i);
+            const area = cv.contourArea(cnt);
+            if (area > total * 0.25 && area > bestArea) {
+                const peri = cv.arcLength(cnt, true);
+                const approx = new cv.Mat();
+                cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+                if (approx.rows === 4 && cv.isContourConvex(approx)) {
+                    const dd = approx.data32S;
+                    best = [0, 1, 2, 3].map(j => ({ x: dd[j * 2], y: dd[j * 2 + 1] }));
+                    bestArea = area;
+                }
+                approx.delete();
+            }
+            cnt.delete();
+        }
+    } finally {
+        contours.delete();
+        hier.delete();
+    }
+    return best;
+}
+
+function capFindQuad(cv, orig) {
+    const small = capScaleTo(orig, 700);
+    const total = small.width * small.height;
+    const sx = orig.width / small.width, sy = orig.height / small.height;
+    const mats = [];
+    const track = m => { mats.push(m); return m; };
+    try {
+        const src = track(cv.imread(small));
+        const gray = track(new cv.Mat());
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
+        const ker = track(cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5)));
+
+        const e1 = track(new cv.Mat());
+        cv.Canny(gray, e1, 60, 160);
+        cv.dilate(e1, e1, ker);
+
+        const e2 = track(new cv.Mat());
+        cv.threshold(gray, e2, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+        cv.morphologyEx(e2, e2, cv.MORPH_CLOSE, ker);
+
+        const cands = [capBestQuad(cv, e1, total), capBestQuad(cv, e2, total)].filter(Boolean);
+        let best = null, bestArea = 0;
+        cands.forEach(q => {
+            const a = capQuadArea(q);
+            if (a > bestArea) { bestArea = a; best = q; }
+        });
+        if (!best) return null;
+        if (bestArea > total * 0.96) return null;   // gần cả ảnh: không cần cắt
+        return capOrderPts(best.map(p => ({ x: p.x * sx, y: p.y * sy })));
+    } finally {
+        mats.forEach(m => { try { m.delete(); } catch (e) {} });
+    }
+}
+
+// ---------- Làm rõ chữ: bỏ bóng, nền trắng, chữ đậm ----------
+
+function capEnhance(src) {
+    const w = src.width, h = src.height, B = 32;
+    const g = src.getContext("2d");
+    const img = g.getImageData(0, 0, w, h);
+    const d = img.data;
+    const gw = Math.ceil(w / B), gh = Math.ceil(h / B);
+
+    const bgc = capNewCanvas(gw, gh);
+    const bg = bgc.getContext("2d");
+    const bgi = bg.createImageData(gw, gh);
+
+    for (let by = 0; by < gh; by++) {
+        for (let bx = 0; bx < gw; bx++) {
+            const x0 = bx * B, y0 = by * B, x1 = Math.min(w, x0 + B), y1 = Math.min(h, y0 + B);
+            const arr = [];
+            for (let y = y0; y < y1; y += 2) {
+                for (let x = x0; x < x1; x += 2) {
+                    const i = (y * w + x) * 4;
+                    arr.push([d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11, i]);
+                }
+            }
+            arr.sort((a, b) => b[0] - a[0]);
+            const n = Math.max(1, Math.round(arr.length * 0.2));
+            let r = 0, gg = 0, bb = 0;
+            for (let k = 0; k < n; k++) {
+                const i = arr[k][1];
+                r += d[i]; gg += d[i + 1]; bb += d[i + 2];
+            }
+            const o = (by * gw + bx) * 4;
+            bgi.data[o] = r / n;
+            bgi.data[o + 1] = gg / n;
+            bgi.data[o + 2] = bb / n;
+            bgi.data[o + 3] = 255;
+        }
+    }
+    bg.putImageData(bgi, 0, 0);
+
+    const big = capNewCanvas(w, h);
+    const bgg = big.getContext("2d");
+    bgg.imageSmoothingEnabled = true;
+    bgg.imageSmoothingQuality = "high";
+    bgg.drawImage(bgc, 0, 0, gw, gh, 0, 0, gw * B, gh * B);
+    const bd = bgg.getImageData(0, 0, w, h).data;
+
+    for (let i = 0; i < d.length; i += 4) {
+        for (let c = 0; c < 3; c++) {
+            let v = d[i + c] * 255 / Math.max(60, bd[i + c]);
+            v = (v - 45) * (255 / 180);
+            v = v < 0 ? 0 : v > 255 ? 255 : v;
+            d[i + c] = 255 * Math.pow(v / 255, 1.25);
+        }
+    }
+    g.putImageData(img, 0, 0);
+    return src;
+}
+
+// ---------- Mã QR in trên mỗi trang biên bản ----------
+// Nội dung: DCCN|Mã KH|số trang/tổng số trang
+
+function capMakeQR(text) {
+    if (typeof qrcode !== "function") return null;
+    try {
+        if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs["UTF-8"]) {
+            qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+        }
+        const q = qrcode(0, "M");
+        q.addData(text);
+        q.make();
+        const n = q.getModuleCount(), cell = 8, quiet = 4;
+        const size = (n + quiet * 2) * cell;
+        const c = capNewCanvas(size, size);
+        const g = c.getContext("2d");
+        g.fillStyle = "#fff";
+        g.fillRect(0, 0, size, size);
+        g.fillStyle = "#000";
+        for (let r = 0; r < n; r++) {
+            for (let col = 0; col < n; col++) {
+                if (q.isDark(r, col)) g.fillRect((col + quiet) * cell, (r + quiet) * cell, cell, cell);
+            }
+        }
+        return c;
+    } catch (e) {
+        return null;
+    }
+}
+
+function capParsePayload(s) {
+    const m = /^DCCN\|(.+)\|(\d+)\/(\d+)$/.exec(String(s || "").trim());
+    return m ? { ma: m[1], page: +m[2], total: +m[3] } : null;
+}
+
+// Góc xoay thuận chiều cần áp dụng để mã QR (và cả trang) đứng thẳng
+function capQrRotation(loc) {
+    const a = Math.atan2(
+        loc.topRightCorner.y - loc.topLeftCorner.y,
+        loc.topRightCorner.x - loc.topLeftCorner.x
+    ) * 180 / Math.PI;
+    return (((Math.round(-a / 90) * 90) % 360) + 360) % 360;
+}
+
+function capMaskQuad(img, loc) {
+    const xs = [loc.topLeftCorner.x, loc.topRightCorner.x, loc.bottomRightCorner.x, loc.bottomLeftCorner.x];
+    const ys = [loc.topLeftCorner.y, loc.topRightCorner.y, loc.bottomRightCorner.y, loc.bottomLeftCorner.y];
+    const pad = 12;
+    const x0 = Math.max(0, Math.floor(Math.min.apply(null, xs)) - pad);
+    const x1 = Math.min(img.width - 1, Math.ceil(Math.max.apply(null, xs)) + pad);
+    const y0 = Math.max(0, Math.floor(Math.min.apply(null, ys)) - pad);
+    const y1 = Math.min(img.height - 1, Math.ceil(Math.max.apply(null, ys)) + pad);
+    for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+            const i = (y * img.width + x) * 4;
+            img.data[i] = img.data[i + 1] = img.data[i + 2] = 255;
+            img.data[i + 3] = 255;
+        }
+    }
+}
+
+// Tìm mã QR của biên bản (bỏ qua mã QR ngân hàng ở đầu trang)
+async function capReadQR(canvas) {
+    let jq;
+    try { jq = await capLib("jsqr"); } catch (e) { return null; }
+    const seen = {};
+    for (const ms of [1400, 900, 2000]) {
+        const c = capScaleTo(canvas, ms);
+        if (seen[c.width]) continue;
+        seen[c.width] = true;
+        const img = c.getContext("2d").getImageData(0, 0, c.width, c.height);
+        for (let n = 0; n < 4; n++) {
+            const code = jq(img.data, c.width, c.height, { inversionAttempts: "attemptBoth" });
+            if (!code) break;
+            const info = capParsePayload(code.data);
+            if (info) return { info: info, rot: capQrRotation(code.location) };
+            capMaskQuad(img, code.location);
+        }
+    }
+    return null;
+}
+
+// ---------- Dự phòng: đọc chữ (OCR) để nhận chiều và số trang ----------
+
+let capOcrP = null;
+function capGetOcr() {
+    if (!capOcrP) {
+        capOcrP = capLib("tess").then(T => T.createWorker("eng")).catch(e => { capOcrP = null; throw e; });
+    }
+    return capOcrP;
+}
+
+async function capOcrOrient(canvas) {
+    const w = await capGetOcr();
+    const small = capScaleTo(canvas, 1000);
+    let best = { rot: 0, score: -1, words: 0 };
+    for (const r of [0, 180, 90, 270]) {
+        const res = await w.recognize(capRotate(small, r));
+        const text = String((res && res.data && res.data.text) || "");
+        const words = text.split(/\s+/).filter(x => /[A-Za-z0-9]{3,}/.test(x)).length;
+        const conf = (res && res.data && res.data.confidence) || 0;
+        const score = conf * Math.min(1, words / 25) + words * 0.05;
+        if (score > best.score) best = { rot: r, score: score, words: words };
+        if (r === 0 && conf > 72 && words >= 30) break;
+    }
+    return best;
+}
+
+async function capOcrPageNo(canvas) {
+    const w = await capGetOcr();
+    const hh = Math.round(canvas.height * 0.16);
+    const c = capNewCanvas(canvas.width, hh);
+    c.getContext("2d").drawImage(canvas, 0, canvas.height - hh, canvas.width, hh, 0, 0, canvas.width, hh);
+    const res = await w.recognize(c);
+    const m = /Trang\s*(\d+)\s*\/\s*(\d+)/i.exec(String((res && res.data && res.data.text) || ""));
+    return m ? { page: +m[1], total: +m[2] } : null;
+}
+
+async function capDetect(work, orig, setMsg) {
+    setMsg("Đang đọc mã QR...");
+    let q = await capReadQR(work);
+    if (!q && orig !== work) q = await capReadQR(orig);
+    if (q) return { rot: q.rot, info: q.info, method: "QR" };
+
+    try {
+        setMsg("Đang đọc chữ để nhận chiều (lần đầu hơi lâu)...");
+        const o = await capOcrOrient(work);
+        if (o.words >= 5) {
+            let info = null;
+            try {
+                const pn = await capOcrPageNo(capRotate(work, o.rot));
+                if (pn) info = { ma: "", page: pn.page, total: pn.total };
+            } catch (e) {}
+            return { rot: o.rot, info: info, method: "OCR" };
+        }
+    } catch (e) {}
+    return { rot: 0, info: null, method: "" };
+}
+
+// ---------- Xử lý từng ảnh ----------
+
+function capEnqueue(fn) {
+    const C = cap;
+    C.q = C.q.then(() => (C === cap ? fn() : null)).catch(err => console.error(err));
+    return C.q;
+}
+
+function capCropOn() { return byId("cpCrop").checked; }
+function capEnhOn() { return byId("cpEnh").checked; }
+
+async function capProcess(p) {
+    const C = cap;
+    if (!C.photos.includes(p)) return;
+    p.busy = true;
+    p.msg = "Đang xử lý...";
+    capRender();
+
+    try {
+        const orig = await capCanvasFromUrl(p.origUrl);
+        let work = orig;
+
+        if (capCropOn() && p.cropMode !== "none") {
+            if (p.cropMode === "auto" && !p.quadTried) {
+                p.quadTried = true;
+                p.msg = "Đang tìm khung giấy...";
+                capRender();
+                const cv = await capCvWait(25000);
+                if (cv) {
+                    try { p.quad = capFindQuad(cv, orig); } catch (e) { console.error(e); p.quad = null; }
+                } else {
+                    p.quadTried = false;   // chưa có công cụ: lần sau thử lại
+                }
+            }
+            if (p.quad) work = capWarp(orig, p.quad);
+        }
+
+        if (!p.detected) {
+            const det = await capDetect(work, orig, m => { p.msg = m; capRender(); });
+            p.autoRot = det.rot;
+            p.info = det.info;
+            p.method = det.method;
+            p.detected = true;
+        }
+
+        p.msg = "Đang hoàn thiện ảnh...";
+        capRender();
+
+        const rot = (p.autoRot + p.userRot) % 360;
+        let out = rot ? capRotate(work, rot) : (work === orig ? orig : work);
+        if (capEnhOn()) out = capEnhance(out);
+
+        p.dataUrl = out.toDataURL("image/jpeg", 0.75);
+        p.w = out.width;
+        p.h = out.height;
+        const th = capScaleTo(out, 320);
+        p.thumb = th.toDataURL("image/jpeg", 0.7);
+    } catch (e) {
+        console.error(e);
+        p.msg = "Lỗi: " + (e && e.message ? e.message : e);
+    }
+
+    p.busy = false;
+    if (C === cap) { capValidate(true); capRender(); }
+}
+
 async function capAddFiles(files) {
     capStatus("");
     for (const f of Array.from(files || [])) {
@@ -2651,17 +3201,345 @@ async function capAddFiles(files) {
             capStatus("Tối đa " + CAP_MAX_PAGES + " trang cho một biên bản.", "err");
             break;
         }
-        try { cap.photos.push(await capLoadPhoto(f)); }
-        catch (e) { capStatus(e.message, "err"); }
+        try {
+            const url = URL.createObjectURL(f);
+            let c;
+            try { c = capFromImage(await capLoadImage(url), CAP_MAX_SIDE); }
+            finally { URL.revokeObjectURL(url); }
+            const p = {
+                id: ++cap.seq,
+                origUrl: c.toDataURL("image/jpeg", 0.88),
+                ow: c.width, oh: c.height,
+                quad: null, cropMode: "auto", quadTried: false,
+                autoRot: 0, userRot: 0, detected: false, info: null, method: "",
+                dataUrl: "", thumb: "", w: 0, h: 0, busy: true, msg: "Đang chờ xử lý..."
+            };
+            cap.photos.push(p);
+            capRender();
+            capEnqueue(() => capProcess(p));
+        } catch (e) {
+            capStatus(e.message, "err");
+        }
     }
-    capRefresh();
 }
- 
-// Gộp các ảnh thành 1 file PDF (mỗi ảnh 1 trang, giữ đúng chiều ngang/dọc)
+
+function capReprocessAll(resetDetect) {
+    cap.photos.forEach(p => {
+        if (resetDetect) p.detected = false;
+        p.busy = true;
+        p.msg = "Đang chờ xử lý...";
+        capEnqueue(() => capProcess(p));
+    });
+    capRender();
+}
+
+// ---------- Kiểm tra thứ tự, thiếu trang, sai khách ----------
+
+function capValidate(autoSort) {
+    const warns = [];
+    const idle = cap.photos.every(p => !p.busy);
+
+    if (autoSort && idle && !cap.userOrdered && cap.photos.length > 1 &&
+        cap.photos.every(p => p.info && p.info.page)) {
+        const before = cap.photos.map(p => p.id).join(",");
+        cap.photos.sort((a, b) => a.info.page - b.info.page);
+        if (cap.photos.map(p => p.id).join(",") !== before) cap.autoSorted = true;
+    }
+    if (cap.autoSorted && !cap.userOrdered) {
+        warns.push({ cls: "info", text: "Đã tự sắp xếp lại các trang theo số trang in trên biên bản." });
+    }
+
+    cap.blocking = false;
+    const ma = cap.cust ? cap.cust.ma : "";
+
+    cap.photos.forEach((p, i) => {
+        if (p.info && p.info.ma && normKey(p.info.ma) !== normKey(ma)) {
+            warns.push({ cls: "err", text: "Ảnh " + (i + 1) + " là biên bản của khách khác (mã \"" + p.info.ma + "\"). Hãy xóa ảnh này hoặc kiểm tra lại khách hàng." });
+            cap.blocking = true;
+        }
+    });
+
+    if (idle) {
+        const withInfo = cap.photos.filter(p => p.info && p.info.page);
+        const unknown = cap.photos.filter(p => !(p.info && p.info.page));
+        const total = Math.max.apply(null, [0].concat(withInfo.map(p => p.info.total || 0)));
+
+        if (total) {
+            const cnt = {};
+            withInfo.forEach(p => { cnt[p.info.page] = (cnt[p.info.page] || 0) + 1; });
+            const missing = [];
+            for (let k = 1; k <= total; k++) if (!cnt[k]) missing.push(k);
+            const dup = Object.keys(cnt).filter(k => cnt[k] > 1);
+
+            if (missing.length > unknown.length) {
+                warns.push({ cls: "err", text: "Biên bản có " + total + " trang nhưng đang thiếu trang " + missing.join(", ") + "." });
+                cap.blocking = true;
+            }
+            if (dup.length) {
+                warns.push({ cls: "err", text: "Trang " + dup.join(", ") + " bị chụp trùng." });
+                cap.blocking = true;
+            }
+        }
+
+        if (unknown.length) {
+            warns.push({
+                cls: "warn",
+                text: unknown.length + " ảnh chưa đọc được số trang. Hãy tự kiểm tra thứ tự và chiều của từng ảnh (dùng nút ◀ ▶ ↻)."
+            });
+        }
+        cap.photos.forEach((p, i) => {
+            if (!p.method) warns.push({ cls: "warn", text: "Ảnh " + (i + 1) + ": chưa nhận được chiều, hãy xem ảnh có đứng đúng chưa." });
+        });
+    }
+
+    cap.warns = warns;
+}
+
+// ---------- Giao diện ----------
+
+function capFileName() {
+    const r = cap.cust;
+    const v = byId("cpDate").value;
+    if (!r || !v) return "";
+    const p = v.split("-");
+    const d = p[2] + "." + p[1] + "." + p[0].slice(-2);
+    return ("DCCN_" + r.ma + "_" + r.ten + "_" + d).replace(/[\\\/:*?"<>|\r\n]+/g, "-");
+}
+
+function capStatus(msg, cls) {
+    const s = byId("cpStatus");
+    s.textContent = msg || "";
+    s.className = cls || "";
+}
+
+function capMk(tag, cls, txt) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt != null) e.textContent = txt;
+    return e;
+}
+
+function capMove(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= cap.photos.length) return;
+    const t = cap.photos[i]; cap.photos[i] = cap.photos[j]; cap.photos[j] = t;
+    cap.userOrdered = true;
+    capValidate(false);
+    capRender();
+}
+
+function capRender() {
+    const box = byId("cpThumbs");
+    box.innerHTML = "";
+
+    cap.photos.forEach((p, i) => {
+        const w = capMk("div", "cap-thumb");
+        const im = document.createElement("img");
+        im.src = p.thumb || p.origUrl;
+        w.appendChild(im);
+        w.appendChild(capMk("span", "no", "Trang " + (i + 1)));
+
+        if (p.busy) {
+            w.appendChild(capMk("div", "busy", p.msg || "Đang xử lý..."));
+        } else {
+            if (p.info && p.info.page) {
+                const okPage = !p.info.ma || normKey(p.info.ma) === normKey(cap.cust ? cap.cust.ma : "");
+                w.appendChild(capMk("span", "tag " + (okPage ? "ok" : "warn"),
+                    (okPage ? "✓ " : "⚠ sai khách · ") + "Trang " + p.info.page + "/" + p.info.total + " (" + p.method + ")"));
+            } else {
+                w.appendChild(capMk("span", "tag warn", p.method ? "Chưa rõ số trang" : "Chưa rõ chiều & số trang"));
+            }
+            if (p.msg && /^Lỗi/.test(p.msg)) w.appendChild(capMk("span", "tag warn", p.msg));
+        }
+
+        const ctl = capMk("div", "cap-ctl");
+        const btn = (txt, title, fn, cls, dis) => {
+            const b = capMk("button", cls || "", txt);
+            b.type = "button"; b.title = title; b.disabled = !!dis;
+            b.onclick = fn;
+            ctl.appendChild(b);
+        };
+        btn("◀", "Dời lên trước", () => capMove(i, -1), "", i === 0);
+        btn("▶", "Dời ra sau", () => capMove(i, 1), "", i === cap.photos.length - 1);
+        btn("↻", "Xoay 90°", () => { p.userRot = (p.userRot + 90) % 360; capReprocessOne(p); }, "", p.busy);
+        btn("✂", "Chỉnh 4 góc khung giấy", () => capOpenEdit(p), "", p.busy);
+        btn("✕", "Xóa ảnh", () => { cap.photos.splice(i, 1); capValidate(false); capRender(); }, "del");
+        w.appendChild(ctl);
+        box.appendChild(w);
+    });
+
+    const wb = byId("cpWarn");
+    wb.innerHTML = "";
+    (cap.warns || []).forEach(x => wb.appendChild(capMk("div", x.cls, x.text)));
+
+    const nm = capFileName();
+    byId("cpName").textContent = nm ? "Tên file: " + nm + ".pdf" : "";
+    const anyBusy = cap.photos.some(p => p.busy);
+    byId("cpSend").disabled = cap.busy || anyBusy || !cap.photos.length || !nm;
+}
+
+function capReprocessOne(p) {
+    p.busy = true;
+    p.msg = "Đang xử lý...";
+    capRender();
+    capEnqueue(() => capProcess(p));
+}
+
+function capPreload() {
+    const el = byId("cpLoad");
+    el.textContent = "Đang chuẩn bị công cụ nhận diện (lần đầu mở có thể mất vài chục giây, bạn vẫn chụp ảnh được)...";
+    const C = cap;
+    const jobs = [capLib("jsqr").catch(() => null)];
+    if (capCropOn()) jobs.push(capLib("cv").catch(() => null));
+    Promise.all(jobs).then(() => {
+        if (C !== cap) return;
+        const msg = [];
+        if (capLibFail.cv && capCropOn()) msg.push("Không tải được công cụ tự cắt khung (vẫn chỉnh tay được bằng nút ✂).");
+        if (capLibFail.jsqr) msg.push("Không tải được công cụ đọc mã QR (hãy xếp trang bằng tay).");
+        el.textContent = msg.join(" ");
+        // ảnh đã chụp trong lúc chờ mà chưa cắt được thì thử lại
+        cap.photos.forEach(p => {
+            if (!p.busy && capCropOn() && p.cropMode === "auto" && !p.quadTried && !capLibFail.cv) {
+                p.detected = false;
+                capReprocessOne(p);
+            }
+        });
+    });
+}
+
+function openCapture(r) {
+    cap = newCap(r);
+    byId("cpCust").textContent = r.ma + " - " + r.ten;
+    const t = new Date();
+    byId("cpDate").value = t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
+    try { byId("cpCode").value = localStorage.getItem("capCode") || ""; } catch (e) {}
+    capStatus("");
+    capValidate(false);
+    capRender();
+    byId("cpModal").style.display = "block";
+    capPreload();
+}
+
+function closeCapture() {
+    byId("cpEditModal").style.display = "none";
+    byId("cpModal").style.display = "none";
+}
+
+// ---------- Chỉnh 4 góc bằng tay ----------
+
+let capEd = null;
+
+async function capOpenEdit(p) {
+    const orig = await capCanvasFromUrl(p.origUrl);
+    const sc = Math.min(1, Math.min(900, window.innerWidth - 50) / orig.width, (window.innerHeight * 0.68) / orig.height);
+    const cv = byId("cpEdCanvas");
+    cv.width = Math.round(orig.width * sc);
+    cv.height = Math.round(orig.height * sc);
+
+    let pts;
+    if (p.quad) pts = p.quad.map(q => ({ x: q.x * sc, y: q.y * sc }));
+    else {
+        const mx = cv.width * 0.06, my = cv.height * 0.06;
+        pts = [{ x: mx, y: my }, { x: cv.width - mx, y: my }, { x: cv.width - mx, y: cv.height - my }, { x: mx, y: cv.height - my }];
+    }
+    capEd = { p: p, orig: orig, sc: sc, pts: pts, drag: -1 };
+    byId("cpEditModal").style.display = "block";
+    capEdDraw();
+}
+
+function capEdDraw() {
+    const cv = byId("cpEdCanvas"), g = cv.getContext("2d");
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.drawImage(capEd.orig, 0, 0, cv.width, cv.height);
+    const pts = capEd.pts;
+    g.lineWidth = 3;
+    g.strokeStyle = "#1e90ff";
+    g.fillStyle = "rgba(30,144,255,.15)";
+    g.beginPath();
+    pts.forEach((q, i) => (i ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y)));
+    g.closePath();
+    g.fill();
+    g.stroke();
+    pts.forEach(q => {
+        g.beginPath();
+        g.arc(q.x, q.y, 16, 0, Math.PI * 2);
+        g.fillStyle = "#1e90ff";
+        g.fill();
+        g.lineWidth = 3;
+        g.strokeStyle = "#fff";
+        g.stroke();
+    });
+}
+
+function capEdPos(e) {
+    const cv = byId("cpEdCanvas"), r = cv.getBoundingClientRect();
+    return {
+        x: Math.max(0, Math.min(cv.width, (e.clientX - r.left) * cv.width / r.width)),
+        y: Math.max(0, Math.min(cv.height, (e.clientY - r.top) * cv.height / r.height))
+    };
+}
+
+(function () {
+    const cv = byId("cpEdCanvas");
+    cv.addEventListener("pointerdown", e => {
+        if (!capEd) return;
+        const m = capEdPos(e);
+        let bi = -1, bd = 1e9;
+        capEd.pts.forEach((q, i) => {
+            const d = Math.hypot(q.x - m.x, q.y - m.y);
+            if (d < bd) { bd = d; bi = i; }
+        });
+        if (bd < 60) {
+            capEd.drag = bi;
+            try { cv.setPointerCapture(e.pointerId); } catch (er) {}
+            e.preventDefault();
+        }
+    });
+    cv.addEventListener("pointermove", e => {
+        if (!capEd || capEd.drag < 0) return;
+        const m = capEdPos(e);
+        capEd.pts[capEd.drag] = m;
+        capEdDraw();
+        e.preventDefault();
+    });
+    const up = () => { if (capEd) capEd.drag = -1; };
+    cv.addEventListener("pointerup", up);
+    cv.addEventListener("pointercancel", up);
+})();
+
+byId("cpEdOk").addEventListener("click", () => {
+    if (!capEd) return;
+    const p = capEd.p;
+    const quad = capOrderPts(capEd.pts.map(q => ({ x: q.x / capEd.sc, y: q.y / capEd.sc })));
+    if (capQuadArea(quad) < p.ow * p.oh * 0.05) { alert("Khung quá nhỏ, hãy kéo 4 góc ra đúng 4 góc tờ giấy."); return; }
+    p.quad = quad;
+    p.cropMode = "manual";
+    p.detected = false;
+    capEd = null;
+    byId("cpEditModal").style.display = "none";
+    capReprocessOne(p);
+});
+byId("cpEdFull").addEventListener("click", () => {
+    if (!capEd) return;
+    const p = capEd.p;
+    p.quad = null;
+    p.cropMode = "none";
+    p.detected = false;
+    capEd = null;
+    byId("cpEditModal").style.display = "none";
+    capReprocessOne(p);
+});
+byId("cpEdCancel").addEventListener("click", () => {
+    capEd = null;
+    byId("cpEditModal").style.display = "none";
+});
+
+// ---------- Tạo PDF và tải lên ----------
+
 function capBuildPdf() {
     const { jsPDF } = window.jspdf;
     let pdf = null;
-    cap.photos.forEach((p, i) => {
+    cap.photos.forEach(p => {
         const orient = p.w > p.h ? "l" : "p";
         if (!pdf) pdf = new jsPDF({ orientation: orient, unit: "mm", format: "a4", compress: true });
         else pdf.addPage("a4", orient);
@@ -2675,37 +3553,44 @@ function capBuildPdf() {
     const uri = pdf.output("datauristring");
     return uri.slice(uri.indexOf("base64,") + 7);
 }
- 
+
 async function capSend() {
     if (cap.busy) return;
+    if (cap.photos.some(p => p.busy)) { capStatus("Đang xử lý ảnh, vui lòng chờ xong rồi bấm lưu.", "err"); return; }
     if (!window.jspdf || !window.jspdf.jsPDF) { capStatus("Chưa tải được thư viện PDF. Kiểm tra mạng rồi tải lại trang.", "err"); return; }
     if (/DÁN_LINK/.test(UPLOAD_URL)) { capStatus("Chưa cấu hình link upload (UPLOAD_URL).", "err"); return; }
- 
-    const code = byId("capCode").value.trim();
+
+    const code = byId("cpCode").value.trim();
     if (!code) { capStatus("Vui lòng nhập mã nhân viên.", "err"); return; }
- 
+
+    capValidate(false);
+    if (cap.blocking) {
+        const msg = (cap.warns || []).filter(x => x.cls === "err").map(x => "- " + x.text).join("\n");
+        if (!confirm("Có vấn đề cần kiểm tra:\n" + msg + "\n\nBạn vẫn muốn lưu biên bản này?")) return;
+    }
+
     const name = capFileName();
     cap.busy = true;
-    byId("capSend").disabled = true;
+    capRender();
     capStatus("Đang tạo PDF và tải lên, vui lòng chờ...");
- 
+
     try {
         const pdf = capBuildPdf();
         const res = await fetch(UPLOAD_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ code, name, pdf })
+            body: JSON.stringify({ code: code, name: name, pdf: pdf })
         });
         const j = await res.json();
         if (!j.ok) throw new Error(j.error || "Tải lên thất bại");
- 
+
         try { localStorage.setItem("capCode", code); } catch (e) {}
- 
+
         // Hiện ngay link vừa tải lên (trang chính sẽ cập nhật theo Google Sheet sau ít phút)
         const dd = name.split("_").pop();
         const r = cap.cust;
         r.bbky = ((r.bbky || "") + "\nNgày " + dd + " " + j.url).trim();
- 
+
         closeCapture();
         showDetail(r);
         showToast("Đã lưu biên bản: " + j.name + ".pdf");
@@ -2713,15 +3598,22 @@ async function capSend() {
         capStatus("Lỗi: " + (e && e.message ? e.message : e), "err");
     } finally {
         cap.busy = false;
-        capRefresh();
+        capRender();
     }
 }
- 
-byId("capCam").addEventListener("change", e => { capAddFiles(e.target.files); e.target.value = ""; });
-byId("capGal").addEventListener("change", e => { capAddFiles(e.target.files); e.target.value = ""; });
-byId("capDate").addEventListener("change", capRefresh);
-byId("capSend").addEventListener("click", capSend);
-byId("capX").addEventListener("click", closeCapture);
+
+byId("cpCam").addEventListener("change", e => { capAddFiles(e.target.files); e.target.value = ""; });
+byId("cpGal").addEventListener("change", e => { capAddFiles(e.target.files); e.target.value = ""; });
+byId("cpDate").addEventListener("change", capRender);
+byId("cpSend").addEventListener("click", capSend);
+byId("cpX").addEventListener("click", closeCapture);
+byId("cpCrop").addEventListener("change", () => {
+    if (capCropOn()) capLib("cv").catch(() => null);
+    capReprocessAll(true);
+});
+byId("cpEnh").addEventListener("change", () => capReprocessAll(false));
+
+
 // ================= ĐÓNG CHI TIẾT =================
 
 function closeModal() {
@@ -2736,7 +3628,9 @@ document.getElementById("modal").addEventListener("click", function(e) {
 
 document.addEventListener("keydown", function(e) {
     if (e.key === "Escape") {
-        if (byId("dcModal").style.display === "block") closeRecon();
+        if (byId("cpEditModal").style.display === "block") byId("cpEditModal").style.display = "none";
+        else if (byId("cpModal").style.display === "block") closeCapture();
+        else if (byId("dcModal").style.display === "block") closeRecon();
         else closeModal();
     }
 });
