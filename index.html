@@ -911,7 +911,7 @@ tbody tr:hover {
         </div>
 
         <div class="cap-actions">
-            <label class="cap-btn">📷 Chụp ảnh
+            <label class="cap-btn"><span id="cpCamTxt">📷 Chụp ảnh</span>
                 <input type="file" id="cpCam" accept="image/*" capture="environment" hidden>
             </label>
             <label class="cap-btn alt">🖼 Chọn từ thư viện
@@ -919,6 +919,7 @@ tbody tr:hover {
             </label>
         </div>
 
+        <div class="cap-hint">Biên bản nhiều trang: chụp từng trang một (nút xanh sẽ tự đổi thành "Chụp thêm trang"), hoặc bấm "Chọn từ thư viện" rồi <b>chọn nhiều ảnh cùng lúc</b>.</div>
         <div class="cap-hint" id="cpLoad"></div>
         <div class="cap-thumbs" id="cpThumbs"></div>
         <div class="cap-warn" id="cpWarn"></div>
@@ -2783,6 +2784,11 @@ function capWarp(src, quad) {
     const tl = quad[0], tr = quad[1], br = quad[2], bl = quad[3];
     let W = Math.max(d(tl, tr), d(bl, br));
     let H = Math.max(d(tl, bl), d(tr, br));
+    // Khung gần tỉ lệ A4 (1:1.414) thì khóa đúng tỉ lệ A4 để chữ không bị kéo giãn
+    const lo = Math.min(W, H), hi = Math.max(W, H);
+    if (Math.abs(hi / lo - 1.4142) < 0.2) {
+        if (W >= H) { W = hi; H = hi / 1.4142; } else { H = hi; W = hi / 1.4142; }
+    }
     const k = Math.min(1, 1500 / Math.max(W, H));
     W = Math.round(W * k);
     H = Math.round(H * k);
@@ -2828,6 +2834,92 @@ function capWarp(src, quad) {
 
 // ---------- Tự tìm khung tờ giấy (thuần JavaScript, không cần tải thư viện) ----------
 // Giấy = vùng sáng và trắng (cả 3 kênh màu đều cao), khác nền bàn/gỗ có màu.
+// Chỉ trả về khung khi nó giống một tờ giấy chữ nhật (tỉ lệ, góc, cạnh đối diện).
+// Nếu không chắc thì trả về null để KHÔNG cắt (cắt sai làm ảnh bị méo).
+
+function capMorph(src, w, h, rad, grow) {
+    // grow=true: nở ra (dilate); grow=false: co lại (erode). Tách ngang rồi dọc.
+    const n = w * h, tmp = new Uint8Array(n), out = new Uint8Array(n);
+    const hit = grow ? 1 : 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        let v = grow ? 0 : 1;
+        for (let k = -rad; k <= rad; k++) {
+            const xx = x + k;
+            const s = (xx >= 0 && xx < w) ? src[y * w + xx] : (grow ? 0 : 0);
+            if (s === hit) { v = hit; break; }
+        }
+        tmp[y * w + x] = v;
+    }
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        let v = grow ? 0 : 1;
+        for (let k = -rad; k <= rad; k++) {
+            const yy = y + k;
+            const s = (yy >= 0 && yy < h) ? tmp[yy * w + x] : 0;
+            if (s === hit) { v = hit; break; }
+        }
+        out[y * w + x] = v;
+    }
+    return out;
+}
+
+function capQuadValid(q) {
+    const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const top = d(q[0], q[1]), bot = d(q[3], q[2]), lef = d(q[0], q[3]), rig = d(q[1], q[2]);
+    if (Math.min(top, bot, lef, rig) < 10) return false;
+    const rh = top / bot, rv = lef / rig;
+    if (rh < 0.72 || rh > 1.4 || rv < 0.72 || rv > 1.4) return false;       // cạnh đối diện phải gần bằng nhau
+    const W = (top + bot) / 2, H = (lef + rig) / 2;
+    const asp = Math.max(W, H) / Math.min(W, H);
+    if (asp < 1.15 || asp > 1.8) return false;                                // A4 ~ 1.41
+    for (let i = 0; i < 4; i++) {                                              // góc gần vuông
+        const p = q[(i + 3) % 4], c = q[i], nx = q[(i + 1) % 4];
+        const v1x = p.x - c.x, v1y = p.y - c.y, v2x = nx.x - c.x, v2y = nx.y - c.y;
+        const cos = (v1x * v2x + v1y * v2y) / (Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y));
+        const ang = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+        if (ang < 65 || ang > 115) return false;
+    }
+    return true;
+}
+
+function capComponentQuad(mask, w, h) {
+    const n = w * h;
+    const lab = new Int32Array(n), stack = new Int32Array(n);
+    let bestLab = 0, bestArea = 0, cur = 0;
+    for (let s = 0; s < n; s++) {
+        if (!mask[s] || lab[s]) continue;
+        cur++;
+        let sp = 0, area = 0;
+        stack[sp++] = s; lab[s] = cur;
+        while (sp) {
+            const p = stack[--sp];
+            area++;
+            const x = p % w, y = (p - x) / w;
+            if (x > 0 && mask[p - 1] && !lab[p - 1]) { lab[p - 1] = cur; stack[sp++] = p - 1; }
+            if (x < w - 1 && mask[p + 1] && !lab[p + 1]) { lab[p + 1] = cur; stack[sp++] = p + 1; }
+            if (y > 0 && mask[p - w] && !lab[p - w]) { lab[p - w] = cur; stack[sp++] = p - w; }
+            if (y < h - 1 && mask[p + w] && !lab[p + w]) { lab[p + w] = cur; stack[sp++] = p + w; }
+        }
+        if (area > bestArea) { bestArea = area; bestLab = cur; }
+    }
+    if (!bestLab || bestArea < n * 0.2 || bestArea > n * 0.97) return null;
+
+    let tl = null, tr = null, br = null, bl = null;
+    let mTL = 1e9, mTR = -1e9, mBR = -1e9, mBL = 1e9;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (lab[y * w + x] !== bestLab) continue;
+        const s = x + y, d = x - y;
+        if (s < mTL) { mTL = s; tl = { x: x, y: y }; }
+        if (d > mTR) { mTR = d; tr = { x: x, y: y }; }
+        if (s > mBR) { mBR = s; br = { x: x, y: y }; }
+        if (d < mBL) { mBL = d; bl = { x: x, y: y }; }
+    }
+    const q = [tl, tr, br, bl];
+    let a = 0;
+    for (let i = 0; i < 4; i++) { const p = q[i], nx = q[(i + 1) % 4]; a += p.x * nx.y - nx.x * p.y; }
+    a = Math.abs(a) / 2;
+    if (a < n * 0.2 || bestArea / a < 0.78) return null;       // hình không lấp đầy khung => không phải tờ giấy
+    return q;
+}
 
 function capPaperQuadData(data, w, h) {
     const n = w * h;
@@ -2839,7 +2931,6 @@ function capPaperQuadData(data, w, h) {
         lum[j] = mn;
         hist[mn]++;
     }
-    // Ngưỡng Otsu
     let sum = 0;
     for (let t = 0; t < 256; t++) sum += t * hist[t];
     let wB = 0, sumB = 0, best = -1, thr = 128;
@@ -2856,75 +2947,16 @@ function capPaperQuadData(data, w, h) {
     const mask = new Uint8Array(n);
     for (let j = 0; j < n; j++) mask[j] = lum[j] > thr ? 1 : 0;
 
-    // Làm đầy lỗ nhỏ do chữ / đường kẻ: đóng (dilate rồi erode) bán kính 2
-    const close = (src, rad) => {
-        const tmp = new Uint8Array(n), out = new Uint8Array(n);
-        // dilate ngang + dọc
-        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-            let v = 0;
-            for (let k = -rad; k <= rad && !v; k++) { const xx = x + k; if (xx >= 0 && xx < w && src[y * w + xx]) v = 1; }
-            tmp[y * w + x] = v;
-        }
-        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-            let v = 0;
-            for (let k = -rad; k <= rad && !v; k++) { const yy = y + k; if (yy >= 0 && yy < h && tmp[yy * w + x]) v = 1; }
-            out[y * w + x] = v;
-        }
-        // erode
-        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-            let v = 1;
-            for (let k = -rad; k <= rad && v; k++) { const xx = x + k; if (xx < 0 || xx >= w || !out[y * w + xx]) v = 0; }
-            tmp[y * w + x] = v;
-        }
-        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-            let v = 1;
-            for (let k = -rad; k <= rad && v; k++) { const yy = y + k; if (yy < 0 || yy >= h || !tmp[yy * w + x]) v = 0; }
-            out[y * w + x] = v;
-        }
-        return out;
-    };
-    const m2 = close(mask, 3);
+    // đóng lỗ do chữ/đường kẻ
+    const closed = capMorph(capMorph(mask, w, h, 3, true), w, h, 3, false);
 
-    // Thành phần liên thông lớn nhất
-    const lab = new Int32Array(n);
-    const stack = new Int32Array(n);
-    let bestLab = 0, bestArea = 0, cur = 0;
-    for (let s = 0; s < n; s++) {
-        if (!m2[s] || lab[s]) continue;
-        cur++;
-        let sp = 0, area = 0;
-        stack[sp++] = s; lab[s] = cur;
-        while (sp) {
-            const p = stack[--sp];
-            area++;
-            const x = p % w, y = (p - x) / w;
-            if (x > 0 && m2[p - 1] && !lab[p - 1]) { lab[p - 1] = cur; stack[sp++] = p - 1; }
-            if (x < w - 1 && m2[p + 1] && !lab[p + 1]) { lab[p + 1] = cur; stack[sp++] = p + 1; }
-            if (y > 0 && m2[p - w] && !lab[p - w]) { lab[p - w] = cur; stack[sp++] = p - w; }
-            if (y < h - 1 && m2[p + w] && !lab[p + w]) { lab[p + w] = cur; stack[sp++] = p + w; }
-        }
-        if (area > bestArea) { bestArea = area; bestLab = cur; }
+    // thử lần lượt: nguyên mask, rồi "mở" (co rồi nở) để cắt đứt chỗ giấy khác dính vào
+    for (const r of [0, 5, 10, 16]) {
+        const m = r ? capMorph(capMorph(closed, w, h, r, false), w, h, r, true) : closed;
+        const q = capComponentQuad(m, w, h);
+        if (q && capQuadValid(q)) return q;
     }
-    if (!bestLab || bestArea < n * 0.12) return null;
-    if (bestArea > n * 0.97) return null;          // gần như cả ảnh là giấy: không cần cắt
-
-    // 4 điểm xa nhất theo 4 hướng chéo
-    let tl = null, tr = null, br = null, bl = null;
-    let mTL = 1e9, mTR = -1e9, mBR = -1e9, mBL = 1e9;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-        if (lab[y * w + x] !== bestLab) continue;
-        const s = x + y, d = x - y;
-        if (s < mTL) { mTL = s; tl = { x: x, y: y }; }
-        if (d > mTR) { mTR = d; tr = { x: x, y: y }; }
-        if (s > mBR) { mBR = s; br = { x: x, y: y }; }
-        if (d < mBL) { mBL = d; bl = { x: x, y: y }; }
-    }
-    const q = [tl, tr, br, bl];
-    let a = 0;
-    for (let i = 0; i < 4; i++) { const p = q[i], nx = q[(i + 1) % 4]; a += p.x * nx.y - nx.x * p.y; }
-    a = Math.abs(a) / 2;
-    if (a < n * 0.12 || bestArea / a < 0.72) return null;     // hình không giống tờ giấy
-    return q;
+    return null;
 }
 
 function capFindQuad(orig) {
@@ -3059,6 +3091,7 @@ async function capReadQR(canvas) {
     let jq;
     try { jq = await capLib("jsqr"); } catch (e) { return null; }
     const seen = {};
+    let other = null;                       // mã QR khác (vd. QR ngân hàng in thẳng trên trang)
     for (const ms of [1200, 1800]) {
         const c = capScaleTo(canvas, ms);
         if (seen[c.width]) continue;
@@ -3068,18 +3101,19 @@ async function capReadQR(canvas) {
             const code = jq(img.data, c.width, c.height, { inversionAttempts: "dontInvert" });
             if (!code) break;
             const info = capParsePayload(code.data);
-            if (info) return { info: info, rot: capQrRotation(code.location) };
+            if (info) return { info: info, rot: capQrRotation(code.location), method: "QR" };
+            if (!other) other = { info: null, rot: capQrRotation(code.location), method: "QR ngân hàng" };
             capMaskQuad(img, code.location);
         }
     }
-    return null;
+    return other;
 }
 
 async function capDetect(work, orig, setMsg) {
     setMsg("Đang đọc mã QR...");
     let q = await capTimeout(capReadQR(work).catch(() => null), 12000, null);
     if (!q && orig !== work) q = await capTimeout(capReadQR(orig).catch(() => null), 12000, null);
-    if (q) return { rot: q.rot, info: q.info, method: "QR" };
+    if (q) return { rot: q.rot, info: q.info, method: q.method };
     return { rot: 0, info: null, method: "" };
 }
 
@@ -3330,6 +3364,7 @@ function capRender() {
 
     const nm = capFileName();
     byId("cpName").textContent = nm ? "Tên file: " + nm + ".pdf" : "";
+    byId("cpCamTxt").textContent = cap.photos.length ? "📷 Chụp thêm trang " + (cap.photos.length + 1) : "📷 Chụp ảnh";
     const anyBusy = cap.photos.some(p => p.busy);
     byId("cpSend").disabled = cap.busy || anyBusy || !cap.photos.length || !nm;
 }
