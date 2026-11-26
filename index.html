@@ -699,7 +699,7 @@ tbody tr:hover {
 }
 .cap-box h2 { font-size: 26px; color: #0f4c81; margin: 6px 0 14px; }
 .cap-box p { margin: 12px 0; }
-.cap-box input[type=date], .cap-box input[type=password] { min-width: 0; width: 100%; margin-top: 6px; }
+.cap-box input[type=date] { min-width: 0; width: 100%; margin-top: 6px; }
 .cap-opts { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0; font-size: 19px; }
 .cap-opts label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .cap-opts input[type=checkbox] { min-width: 0; width: 22px; height: 22px; padding: 0; }
@@ -904,15 +904,9 @@ tbody tr:hover {
             <span class="label">Ngày biên bản đối chiếu:</span>
             <input type="date" id="cpDate">
         </p>
-        <p>
-            <span class="label">Mã nhân viên:</span>
-            <input type="password" id="cpCode" placeholder="Nhập mã nhân viên" autocomplete="off">
-        </p>
-
         <div class="cap-opts">
             <label><input type="checkbox" id="cpCrop" checked> Tự cắt khung giấy</label>
             <label><input type="checkbox" id="cpEnh" checked> Làm rõ chữ (nền trắng)</label>
-            <label title="Chỉ cần khi biên bản cũ chưa in mã QR. Chậm và nặng."><input type="checkbox" id="cpOcr"> Đọc chữ để nhận chiều (chậm, cho biên bản cũ chưa có QR)</label>
         </div>
 
         <div class="cap-actions">
@@ -2640,9 +2634,6 @@ const CAP_LIBS = {
     cv: [
         "https://docs.opencv.org/4.x/opencv.js",
         "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.9.0-release.1/dist/opencv.js"
-    ],
-    tess: [
-        "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"
     ]
 };
 
@@ -2691,8 +2682,6 @@ function capLib(name) {
     let p;
     if (name === "jsqr") {
         p = typeof window.jsQR === "function" ? Promise.resolve(window.jsQR) : capLoadScript(CAP_LIBS.jsqr).then(() => window.jsQR);
-    } else if (name === "tess") {
-        p = capLoadScript(CAP_LIBS.tess).then(() => window.Tesseract);
     } else {
         p = capLoadScript(CAP_LIBS.cv).then(capCvReady).then(w => { capCvObj = w.cv; return w; });
     }
@@ -3073,65 +3062,11 @@ async function capReadQR(canvas) {
     return null;
 }
 
-// ---------- Dự phòng: đọc chữ (OCR) để nhận chiều và số trang ----------
-
-let capOcrP = null;
-function capGetOcr() {
-    if (!capOcrP) {
-        capOcrP = capLib("tess").then(T => T.createWorker("eng")).catch(e => { capOcrP = null; throw e; });
-    }
-    return capOcrP;
-}
-
-async function capOcrOrient(canvas) {
-    const w = await capGetOcr();
-    const small = capScaleTo(canvas, 1000);
-    let best = { rot: 0, score: -1, words: 0 };
-    for (const r of [0, 180, 90, 270]) {
-        const res = await w.recognize(capRotate(small, r));
-        const text = String((res && res.data && res.data.text) || "");
-        const words = text.split(/\s+/).filter(x => /[A-Za-z0-9]{3,}/.test(x)).length;
-        const conf = (res && res.data && res.data.confidence) || 0;
-        const score = conf * Math.min(1, words / 25) + words * 0.05;
-        if (score > best.score) best = { rot: r, score: score, words: words };
-        if (r === 0 && conf > 72 && words >= 30) break;
-    }
-    return best;
-}
-
-async function capOcrPageNo(canvas) {
-    const w = await capGetOcr();
-    const hh = Math.round(canvas.height * 0.16);
-    const c = capNewCanvas(canvas.width, hh);
-    c.getContext("2d").drawImage(canvas, 0, canvas.height - hh, canvas.width, hh, 0, 0, canvas.width, hh);
-    const res = await w.recognize(c);
-    const m = /Trang\s*(\d+)\s*\/\s*(\d+)/i.exec(String((res && res.data && res.data.text) || ""));
-    return m ? { page: +m[1], total: +m[2] } : null;
-}
-
-async function capOcrFlow(work) {
-    const o = await capOcrOrient(work);
-    if (o.words < 5) return null;
-    let info = null;
-    try {
-        const pn = await capOcrPageNo(capRotate(work, o.rot));
-        if (pn) info = { ma: "", page: pn.page, total: pn.total };
-    } catch (e) {}
-    return { rot: o.rot, info: info, method: "OCR" };
-}
-
 async function capDetect(work, orig, setMsg) {
     setMsg("Đang đọc mã QR...");
     let q = await capTimeout(capReadQR(work).catch(() => null), 15000, null);
     if (!q && orig !== work) q = await capTimeout(capReadQR(orig).catch(() => null), 15000, null);
     if (q) return { rot: q.rot, info: q.info, method: "QR" };
-
-    if (byId("cpOcr").checked) {
-        setMsg("Đang đọc chữ để nhận chiều (tối đa 45 giây)...");
-        const r = await capTimeout(capOcrFlow(work).catch(() => null), 45000, "timeout");
-        if (r === "timeout") capOcrP = null;          // bỏ worker bị treo
-        else if (r) return r;
-    }
     return { rot: 0, info: null, method: "" };
 }
 
@@ -3419,7 +3354,7 @@ function openCapture(r) {
     byId("cpCust").textContent = r.ma + " - " + r.ten;
     const t = new Date();
     byId("cpDate").value = t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
-    try { byId("cpCode").value = localStorage.getItem("capCode") || ""; } catch (e) {}
+    try { localStorage.removeItem("capCode"); } catch (e) {}
     capStatus("");
     capValidate(false);
     capRender();
@@ -3567,9 +3502,6 @@ async function capSend() {
     if (!window.jspdf || !window.jspdf.jsPDF) { capStatus("Chưa tải được thư viện PDF. Kiểm tra mạng rồi tải lại trang.", "err"); return; }
     if (/DÁN_LINK/.test(UPLOAD_URL)) { capStatus("Chưa cấu hình link upload (UPLOAD_URL).", "err"); return; }
 
-    const code = byId("cpCode").value.trim();
-    if (!code) { capStatus("Vui lòng nhập mã nhân viên.", "err"); return; }
-
     capValidate(false);
     if (cap.blocking) {
         const msg = (cap.warns || []).filter(x => x.cls === "err").map(x => "- " + x.text).join("\n");
@@ -3586,12 +3518,10 @@ async function capSend() {
         const res = await fetch(UPLOAD_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ code: code, name: name, pdf: pdf })
+            body: JSON.stringify({ name: name, pdf: pdf })
         });
         const j = await res.json();
         if (!j.ok) throw new Error(j.error || "Tải lên thất bại");
-
-        try { localStorage.setItem("capCode", code); } catch (e) {}
 
         // Hiện ngay link vừa tải lên (trang chính sẽ cập nhật theo Google Sheet sau ít phút)
         const dd = name.split("_").pop();
@@ -3619,10 +3549,6 @@ byId("cpCrop").addEventListener("change", () => {
     capReprocessAll(true);
 });
 byId("cpEnh").addEventListener("change", () => capReprocessAll(false));
-byId("cpOcr").addEventListener("change", () => {
-    if (!byId("cpOcr").checked) return;
-    cap.photos.forEach(p => { if (!p.method && !p.busy) { p.detected = false; capReprocessOne(p); } });
-});
 
 
 // ================= ĐÓNG CHI TIẾT =================
