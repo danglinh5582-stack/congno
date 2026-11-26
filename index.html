@@ -88,6 +88,7 @@ input, select {
     flex: 1;
 }
 
+/* Ô tích chọn lọc */
 .check-filter {
     display: flex;
     align-items: center;
@@ -106,6 +107,7 @@ input, select {
     cursor: pointer;
 }
 
+/* Ô chọn file Excel */
 .file-pick {
     font-size: 18px;
 }
@@ -759,10 +761,12 @@ tbody tr:hover {
 
 <div class="container">
 
+    <!-- KHU VỰC ĐƯỢC GHIM CỐ ĐỊNH KHI CUỘN -->
     <div class="sticky-header" id="stickyHeader">
 
         <h1>TRA CỨU CÔNG NỢ KHÁCH HÀNG</h1>
 
+        <!-- TÌM KIẾM VÀ LỌC -->
         <div class="card" style="margin-bottom: 12px;">
             <div class="search-box">
                 <input
@@ -786,6 +790,7 @@ tbody tr:hover {
             </div>
         </div>
 
+        <!-- THỐNG KÊ -->
         <div class="stats">
             <div class="stat">
                 <div>Tổng khách hàng</div>
@@ -820,6 +825,7 @@ tbody tr:hover {
 
     </div>
 
+    <!-- BẢNG MÁY TÍNH -->
     <div class="card table-container">
 
         <table>
@@ -846,6 +852,7 @@ tbody tr:hover {
 
     </div>
 
+    <!-- BẢNG GỌN CHO ĐIỆN THOẠI -->
     <div class="mobile-list" id="mobileList"></div>
 
 </div>
@@ -905,7 +912,7 @@ tbody tr:hover {
 
         <div class="cap-actions">
             <label class="cap-btn"><span id="cpCamTxt">📷 Chụp ảnh</span>
-                <input type="file" id="cpCam" accept="image/*" capture="environment" multiple hidden>
+                <input type="file" id="cpCam" accept="image/*" capture="environment" hidden>
             </label>
             <label class="cap-btn alt">🖼 Chọn từ thư viện
                 <input type="file" id="cpGal" accept="image/*" multiple hidden>
@@ -960,6 +967,7 @@ const DETAIL_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgbcK
 
 let allData = [];
 
+// Trạng thái sắp xếp (null = thứ tự ban đầu: dư nợ giảm dần)
 let sortKey = null;
 let sortAsc = true;
 
@@ -997,6 +1005,7 @@ function toNumber(value) {
     return neg ? -n : n;
 }
 
+// Chuyển chuỗi ngày bất kỳ (dd/mm/yyyy, dd/mm/yy, yyyy-mm-dd, mm/dd/yyyy) thành đối tượng {d, mo, y} theo chuẩn dd/mm/yy
 function parseDateParts(raw) {
     const s = String(raw || "").trim();
     if (!s) return null;
@@ -1023,6 +1032,7 @@ function parseDateParts(raw) {
     return null;
 }
 
+// Trả về chuỗi dd/mm/yy
 function formatDateDDMMYY(raw) {
     const s = String(raw || "").trim();
     if (!s) return "";
@@ -1197,9 +1207,9 @@ function ingest(rows) {
             duno: vn(9),
             thanhtoan: formatDateDDMMYY(s(10)),
             muahang: formatDateDDMMYY(s(11)),
-            bbky: s(12),
-            vat: vn(13),
-            hdvat: s(14)
+            bbky: s(12),                        // Cột M: BIÊN BẢN ĐCCN ĐÃ KÝ (link PDF)
+            vat: vn(13),                        // Cột N: TỔNG SỐ TIỀN ĐÃ XUẤT VAT
+            hdvat: s(14)                        // Cột O: HÓA ĐƠN VAT (link PDF)
         });
     });
 
@@ -1449,11 +1459,13 @@ document.getElementById("nvkdFilter").addEventListener("change", render);
 document.getElementById("overdueOnly").addEventListener("change", render);
 
 // ================= LINK XEM FILE (PDF) =================
-// Mỗi ô có thể chứa 1 hoặc nhiều mục: MÔ TẢ + LINK, ví dụ:
-//     Ngày 23.11.26 https://drive.google.com/file/d/xxx/view
-// Nếu maxShow > 0: sắp xếp theo ngày trong phần mô tả, MỚI NHẤT lên đầu, lấy tối đa maxShow mục,
-// mỗi mục một dòng.
 
+// Mỗi ô có thể chứa 1 hoặc nhiều mục. Mỗi mục gồm: MÔ TẢ + LINK, ví dụ:
+//     Ngày 23.11.26 https://drive.google.com/file/d/xxx/view
+// Hiển thị:  Ngày 23.11.26 (Xem biên bản đã ký); Ngày 05.12.26 (Xem biên bản đã ký)
+// Chữ đứng trước mỗi link là mô tả của mục đó; các mục có thể cách nhau bằng
+// xuống dòng (Alt+Enter), dấu ; hoặc khoảng trắng. Không có mô tả thì chỉ hiện (Xem ...).
+// Trả về true nếu có ít nhất một link; false nếu ô trống / chỉ có chữ thường.
 function appendFileLinks(parent, raw, linkText, maxShow) {
     const text = String(raw || "").trim();
     const re = /https?:\/\/[^\s"'<>]+/gi;
@@ -1471,29 +1483,15 @@ function appendFileLinks(parent, raw, linkText, maxShow) {
         last = m.index + m[0].length;
         if (seen.has(url)) continue;
         seen.add(url);
-
-        // Lấy ngày trong phần mô tả (23.11.26 / 23/11/26 / 23-11-2026) để sắp xếp
-        let ymd = 0;
-        const dm = label.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
-        if (dm) {
-            let y = +dm[3];
-            if (y < 100) y += 2000;
-            ymd = y * 10000 + (+dm[2]) * 100 + (+dm[1]);
-        }
-        entries.push({ url, label, ymd, idx: entries.length });
+        entries.push({ url, label });
     }
 
     if (!entries.length) return false;
-
-    if (maxShow) {
-        // Mới nhất lên đầu (ngày lớn hơn trước; không có ngày thì mục nằm sau trong ô coi là mới hơn)
-        entries.sort((a, b) => (b.ymd - a.ymd) || (b.idx - a.idx));
-        if (entries.length > maxShow) entries.length = maxShow;
-    }
+    if (maxShow && entries.length > maxShow) entries.splice(0, entries.length - maxShow);
 
     const base = linkText || "Xem file";
     entries.forEach((en, i) => {
-        if (i > 0) parent.appendChild(document.createElement("br"));
+        if (i > 0) parent.appendChild(document.createTextNode("; "));
         if (en.label) parent.appendChild(document.createTextNode(en.label + " ("));
         const a = document.createElement("a");
         a.href = en.url;
@@ -1557,7 +1555,7 @@ function showDetail(r) {
             link.textContent = item[1];
             p.appendChild(link);
         } else if (item[3] && appendFileLinks(p, item[1], item[4], index === 11 ? 3 : 0)) {
-            // đã hiển thị link xem file
+            // đã hiển thị link xem file (xem hàm appendFileLinks)
         } else {
             p.appendChild(document.createTextNode(item[1] || "Chưa cập nhật"));
         }
@@ -1585,7 +1583,8 @@ function showDetail(r) {
 
 const THOUSAND = ",";
 
-const QR_B64_PURE = "iVBORw0KGgoAAAANSUhEUgAAASgAAAEoCAAAAADObDPFAAAD2ElEQVR42u3dwW7rMAwEQKl4///L7j2AHpeSHPQwPKapnAxIYCG76nyGSuoHAShQoECBAqVAgQIFChQoUArUjfr3+cLcXKja15rNdeal69/6PjrK6IECBQoUKFXlqDQXVTllNnPOs3n99Hqn30dHGT1QoECBAqXSHFXliiqXpLnpKXLQKmet1nnr++goowcKFChQoFQ3R3Vrhrmkyk27r6e5SEcZPVCgQIFSoP5ajqry1Cr/zDA3VetPHWX0QIECpUCB+iM5qruvkz7vffpc+NNcd/f76ChQoECBAgVKdXPU7r7Oal8p3Ycal95/e59KR4ECBQoUKFDqM168fQ5n+vx4975emuN0lNEDBQqUAgXqpSrPj+ref+vmonS/6VZe2s1nOgoUKFCgQIFSVY5a5Yv0nIFuvqquW+WnGX6eJ/xeq/V0lNEDBQoUKFAqzVGnOeYpckw3/5yeS969no4yeqBAgQIFSlWxqPv3daf33br347r34XbXdw6n0QMFChQoBapZ5X29ah8o3Seazder887TvwMcRZ5L36+jjB4oUKBAgVKf8WH3vKfT/ab0PtsoPse4/Ll0lNEDBQoUKAUqrO3/U1w9/5Tmsrl5vfRzVjnLfT2jBwoUKFAK1O0cleaV7nmX6flRVf4Zh783mu/XUUYPFChQoECpKkd1/07u1n5UmsO6+ejW8+Y6yuiBAgUKFChV5ajd/FTtX3XvA1Z1ej+vu56OMnqgQIECBUp9xovu8+NVrjn9/y7pOZ7d3Dc219VRRg8UKFCgQKlFxedwdveddn9/9/3pz0eYG3WU0QMFChQoUGo3R1XnlFfvS/evqutX1+mek+7cA6MHChQoBQrUt3JUmq+699WezfW65xRU+aubH3WU0QMFChQoUOozNnz7+ag0T42ip8bh+t37hTrK6IECBQoUKPVR7eejloGsma/S952eozDC6+ooowcKFChQoNSsuLv/c2v/qZuD5pdg3NczeqBAgQIFSnVz1PGCzZy1u4+UXr/7+XSU0QMFChQoBSqs5Xnm3Xqa75vN3PNWrkqf09JRRg8UKFCgQKkqR3XzymzmlLm57lvPP6XPY+koowcKFChQoFSao6rcc7q/k+5LpedXpZ979bmcZ270QIECBQoUqNs56nZ181TaZ9PNU6e/S3pOS0cZPVCgQIECpb6Vo3b3iUaRp9KcNMI8NnWU0QMFChQoBeqlHLX7XHeVi6rXq/V2n5fadU1HGT1QoECBAqXSHHXrnKbuuVBPc73npZ/rKKMHChQoUKBUUdfPj9JRoBQoUKBAgQKlQIECBQoUKFDqP/ULdD4HyEAI7DsAAAAASUVORK5CYII=";
+// Mã QR Vietinbank chính xác 100% trích xuất từ file QR-113002633897.pdf (CÔNG TY TNHH TÂN ĐẠT VIỆT NAM - 113002633897)
+const QR_B64_PURE = "iVBORw0KGgoAAAANSUhEUgAAASgAAAEoCAAAAADObDPFAAAD2ElEQVR42u3dwW7rMAwEQKl4///L7j2AHpeSHPQwPKapnAxIYCG76nyGSuoHAShQoECBAqVAgQIFChQoUArUjfr3+cLcXKja15rNdeal69/6PjrK6IECBQoUKFXlqDQXVTllNnPOs3n99Hqn30dHGT1QoECBAqXSHFXliiqXpLnpKXLQKmet1nnr++goowcKFChQoFQ3R3Vrhrmkyk27r6e5SEcZPVCgQIFSoP5ajqry1Cr/zDA3VetPHWX0QIECpUCB+iM5qruvkz7vffpc+NNcd/f76ChQoECBAgVKdXPU7r7Oal8p3Ycal95/e59KR4ECBQoUKFDqM168fQ5n+vx4975emuN0lNEDBQqUAgXqpSrPj+ref+vmonS/6VZe2s1nOgoUKFCgQIFSVY5a5Yv0nIFuvqquW+WnGX6eJ/xeq/V0lNEDBQoUKFAqzVGnOeYpckw3/5yeS969no4yeqBAgQIFSlWxqPv3daf33br347r34XbXdw6n0QMFChQoBapZ5X29ah8o3Seazder887TvwMcRZ5L36+jjB4oUKBAgVKf8WH3vKfT/ab0PtsoPse4/Ll0lNEDBQoUKAUqrO3/U1w9/5Tmsrl5vfRzVjnLfT2jBwoUKFAK1O0cleaV7nmX6flRVf4Zh783mu/XUUYPFChQoECpKkd1/07u1n5UmsO6+ejW8+Y6yuiBAgUKFChV5ajd/FTtX3XvA1Z1ej+vu56OMnqgQIECBUp9xovu8+NVrjn9/y7pOZ7d3Dc219VRRg8UKFCgQKlFxedwdveddn9/9/3pz0eYG3WU0QMFChQoUGo3R1XnlFfvS/evquuvrtM9J925B0YPFChQChSob+WoNF9176s9m+t1zymo8lc3P+ooowcKFChQoNRnbPj281FpnhpFnhqH63fvF+ooowcKFChQoNRHtZ+PWgayZr5K33d6jsIIr6ujjB4oUKBAKVDNmrv7P7f2n7o5aH4Jxn09owcKFChQoFQ3Rx0v2MxZu/tI6fW7n09HGT1QoECBUqDCWp5n3q2n+b7ZzD1v5ar0OS0dZfRAgQIFCpSqclQ3r8xmfpmb6771/FP6PJaOMnqgQIECBUqlOarKPaf7O+m+VHp+Vfq5V5/LeeZGDxQoUKAUqNs56nZ189Tp/8VL81e136WjjB4oUKBAgVLfylG7+0SjyFNpThphHps6yuiBAgUKlAL1Uo7afa67ykXV69V6u89L7a6no4weKFCgQIFSaY66dU5T91yop7ne89LPdZTRAwUKFChQqqjr50fpKFAKFChQoECBUqBAgQIFChQo9Z/6BTqfA2QgZPftAAAAAElFTkSuQmCC";
 const QR_SRC = "data:image/png;base64," + QR_B64_PURE;
 
 const COMPANY = {
@@ -1685,12 +1684,15 @@ async function ensureDetail() {
 }
 
 // ---------- Tính dữ liệu đối chiếu ----------
-// Không cộng dồn số lượng giữa dòng doanh thu / chiết khấu / thuế của cùng một chứng từ.
+// ĐÃ SỬA: không cộng dồn số lượng giữa dòng doanh thu / chiết khấu / thuế của cùng một chứng từ.
+// Phần mềm kế toán ghi số lượng ở cả dòng doanh thu (Nợ) và dòng chiết khấu (Có),
+// nên nếu cộng dồn sẽ bị gấp đôi (24 + 24 = 48).
 
 function buildLines(slice) {
     const lines = [];
     const keyed = new Map();
 
+    // Lấy số lượng có giá trị tuyệt đối lớn nhất (giữ nguyên dấu)
     const maxAbs = (cur, v) => Math.abs(v) > Math.abs(cur) ? v : cur;
 
     slice.forEach(r => {
@@ -1703,8 +1705,8 @@ function buildLines(slice) {
                     date: r.date,
                     ten: r.ten || r.desc,
                     dvt: "",
-                    slDebit: 0,
-                    slCredit: 0,
+                    slDebit: 0,   // số lượng ở các dòng phát sinh Nợ (doanh thu, thuế)
+                    slCredit: 0,  // số lượng ở các dòng phát sinh Có (chiết khấu, trả hàng)
                     net: 0,
                     general: r.general,
                     desc: r.desc,
@@ -1716,6 +1718,7 @@ function buildLines(slice) {
             const rowNet = r.no - r.co;
             L.net += rowNet;
 
+            // KHÔNG cộng dồn: dòng chiết khấu cùng mang số lượng của dòng doanh thu
             if (rowNet >= 0) L.slDebit = maxAbs(L.slDebit, r.sl);
             else L.slCredit = maxAbs(L.slCredit, r.sl);
 
@@ -1742,6 +1745,7 @@ function buildLines(slice) {
 
         if (L.kind === "prod") {
             if (net > 0) {
+                // Bán hàng: ưu tiên số lượng ở dòng doanh thu (phía Nợ)
                 const sl = L.slDebit !== 0 ? L.slDebit : L.slCredit;
                 out.push({
                     date: L.date,
@@ -1753,6 +1757,7 @@ function buildLines(slice) {
                     credit: 0
                 });
             } else {
+                // Trả lại hàng / giảm giá: ưu tiên số lượng phía Có
                 const sl = L.slCredit !== 0 ? L.slCredit : L.slDebit;
                 const absSl = Math.abs(sl);
                 const isReturn = sl < 0 || /trả lại|thu lại/i.test(L.general || L.ten || "");
@@ -1976,6 +1981,7 @@ async function drawRecon(d, custName) {
         text(t, cx, y, f(px, bold), "center");
     };
 
+    // --- Đầu trang ---
     const lcx = M + leftW / 2;
     fitText(COMPANY.name, lcx, hdrTop + 34, leftW, 24, true);
     fitText(COMPANY.addr, lcx, hdrTop + 72, leftW, 19, true);
@@ -1988,16 +1994,19 @@ async function drawRecon(d, custName) {
     const tTop = hdrTop + (hdrH - titleLines.length * 30) / 2 + 10;
     titleLines.forEach((t, i) => text(t, rx + rw / 2, tTop + i * 30 + 15, f(22, true), "center"));
 
+    // --- Khách hàng + ngày lập ---
     let y = hdrTop + hdrH + 14;
     text(custLabel, M, y + 17, f(21, true), "left");
     nameLines.forEach((t, i) => text(t, nameX, y + 17 + i * 28, f(23, true), "left"));
     text(dateText, W - M, y + 17, f(19, false, true), "right");
     y += custH + 6;
 
+    // --- Dư nợ đầu ngày dd/mm/yy: ---
     text("Dư nợ đầu ngày " + fmtYMD(d.startYMD) + ":", colX[7] - PAD, y + 15, BOLD, "right");
     text(sOpen, colX[7] + cw[7] - PAD, y + 15, BOLD, "right");
     y += 30;
 
+    // --- Bảng ---
     ctx.strokeStyle = "#444"; ctx.lineWidth = 1;
     const cell = (k, top, h) => ctx.strokeRect(colX[k] + 0.5, top + 0.5, cw[k], h);
 
@@ -2024,12 +2033,14 @@ async function drawRecon(d, custName) {
         y += r.h;
     });
 
+    // Dòng cộng
     for (let k = 0; k < 8; k++) cell(k, y, totalH);
     text("Cộng", colX[2] + PAD, y + totalH / 2, BOLD, "left");
     text(sDebit, colX[6] + cw[6] - PAD, y + totalH / 2, BOLD, "right");
     text(sCredit, colX[7] + cw[7] - PAD, y + totalH / 2, BOLD, "right");
     y += totalH + 20;
 
+    // --- Tổng kết thanh toán ---
     text("Số tiền đã thanh toán:", colX[6] - 8, y + 15, f(20, true), "right");
     text(sCredit, colX[6] + cw[6] - PAD, y + 15, f(20, true), "right");
     text("Đồng", colX[7] + PAD, y + 15, f(20), "left");
@@ -2044,6 +2055,7 @@ async function drawRecon(d, custName) {
     text("Đồng", colX[7] + PAD, y + 15, f(20), "left");
     y += 46;
 
+    // --- Đuôi biên bản: 4 cột chữ ký + Tính đến ngày + Số tiền bằng chữ + Ghi chú + Lưu ý ---
     const sigCols = [
         { title: "Xác nhận của Khách hàng", w: 300 },
         { title: "Giám đốc", w: 220 },
@@ -2072,6 +2084,7 @@ async function drawRecon(d, custName) {
 
     y = sigBottomY + Math.max(summaryBelowSigH, 24 + wordsLines.length * 22 + 10);
 
+    // Khung Ghi chú có các dòng kẻ ngang
     ctx.strokeStyle = "#444";
     ctx.strokeRect(M + 0.5, y + 0.5, tableW, noteBoxH);
     text("Ghi chú", M + 8, y + 14, f(18, true, true), "left");
@@ -2086,6 +2099,7 @@ async function drawRecon(d, custName) {
     ctx.setLineDash([]);
     y += noteBoxH + 14;
 
+    // Lưu ý chân trang
     text("Lưu ý:", M, y + 10, noteFont, "left");
     let fy = y + 32;
     note1Lines.forEach(nl => {
@@ -2101,6 +2115,12 @@ async function drawRecon(d, custName) {
 }
 
 // ---------- Vẽ biên bản nhiều trang A4 dọc (dùng riêng cho file PDF) ----------
+// Quy tắc ngắt trang:
+//  - Phần đầu (công ty, QR, tiêu đề, khách hàng, ngày lập, dư nợ đầu ngày) lặp lại ở MỌI trang.
+//  - Dòng tiêu đề cột (TT, Ngày/tháng, Tên hàng...) chỉ hiện ở trang 1.
+//  - Dòng hàng không bị cắt ngang giữa hai trang.
+//  - Dòng Cộng + số tiền thanh toán đi cùng dòng hàng cuối.
+//  - Cụm chữ ký + ghi chú + lưu ý luôn đi nguyên cụm, nếu không đủ chỗ thì sang trang mới.
 
 async function drawReconPages(d, custName, custMa) {
     const qr = await loadQR();
@@ -2360,7 +2380,7 @@ async function drawReconPages(d, custName, custMa) {
             else if (it.type === "sign") drawSign(iy);
         });
 
-        // Mã QR + số trang ở chân mỗi trang
+        // Mã QR + số trang ở chân mỗi trang (để tự nhận chiều, xếp trang, kiểm tra đúng khách khi chụp lại)
         const QS = 100;
         const qrCv = capMakeQR("DCCN|" + custMa + "|" + (pi + 1) + "/" + pages.length);
         if (qrCv) {
@@ -2602,10 +2622,12 @@ byId("dcCsv").addEventListener("change", e => {
 
 // ================= CHỤP BIÊN BẢN ĐỐI CHIẾU ĐÃ KÝ -> PDF -> DRIVE =================
 
+// Dán link triển khai Apps Script (kết thúc bằng /exec) vào đây:
 const UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz0HJlp_I87LN9b9Yw4PSp5-Q9xRmxP-qJJCzzBT1C5jtpGJJd07EzaT0KeALxen3yi/exec";
 const CAP_MAX_PAGES = 10;
 const CAP_MAX_SIDE = 1500;
 
+// Thư viện đọc mã QR (nhỏ, khoảng 130 KB) chỉ tải khi mở màn hình chụp
 const CAP_LIBS = {
     jsqr: [
         "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",
@@ -2691,6 +2713,7 @@ function capScaleTo(src, maxSide) {
     return c;
 }
 
+// Xoay thuận chiều kim đồng hồ deg độ (0/90/180/270)
 function capRotate(src, deg) {
     deg = ((deg % 360) + 360) % 360;
     if (!deg) return src;
@@ -2704,7 +2727,7 @@ function capRotate(src, deg) {
     return c;
 }
 
-// ---------- Nắn phẳng tờ giấy ----------
+// ---------- Nắn phẳng tờ giấy (tự viết, không cần OpenCV) ----------
 
 function capSolveH(uv, xy) {
     const A = [], b = [];
@@ -2735,6 +2758,7 @@ function capSolveH(uv, xy) {
     return h;
 }
 
+// Sắp 4 điểm theo thứ tự: trái-trên, phải-trên, phải-dưới, trái-dưới
 function capOrderPts(pts) {
     const s = pts.map(p => p.x + p.y);
     const dd = pts.map(p => p.y - p.x);
@@ -2760,6 +2784,7 @@ function capWarp(src, quad) {
     const tl = quad[0], tr = quad[1], br = quad[2], bl = quad[3];
     let W = Math.max(d(tl, tr), d(bl, br));
     let H = Math.max(d(tl, bl), d(tr, br));
+    // Khung gần tỉ lệ A4 (1:1.414) thì khóa đúng tỉ lệ A4 để chữ không bị kéo giãn
     const lo = Math.min(W, H), hi = Math.max(W, H);
     if (Math.abs(hi / lo - 1.4142) < 0.2) {
         if (W >= H) { W = hi; H = hi / 1.4142; } else { H = hi; W = hi / 1.4142; }
@@ -2807,9 +2832,13 @@ function capWarp(src, quad) {
     return out;
 }
 
-// ---------- Tự tìm khung tờ giấy ----------
+// ---------- Tự tìm khung tờ giấy (thuần JavaScript, không cần tải thư viện) ----------
+// Giấy = vùng sáng và trắng (cả 3 kênh màu đều cao), khác nền bàn/gỗ có màu.
+// Chỉ trả về khung khi nó giống một tờ giấy chữ nhật (tỉ lệ, góc, cạnh đối diện).
+// Nếu không chắc thì trả về null để KHÔNG cắt (cắt sai làm ảnh bị méo).
 
 function capMorph(src, w, h, rad, grow) {
+    // grow=true: nở ra (dilate); grow=false: co lại (erode). Tách ngang rồi dọc.
     const n = w * h, tmp = new Uint8Array(n), out = new Uint8Array(n);
     const hit = grow ? 1 : 0;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -2838,11 +2867,11 @@ function capQuadValid(q) {
     const top = d(q[0], q[1]), bot = d(q[3], q[2]), lef = d(q[0], q[3]), rig = d(q[1], q[2]);
     if (Math.min(top, bot, lef, rig) < 10) return false;
     const rh = top / bot, rv = lef / rig;
-    if (rh < 0.72 || rh > 1.4 || rv < 0.72 || rv > 1.4) return false;
+    if (rh < 0.72 || rh > 1.4 || rv < 0.72 || rv > 1.4) return false;       // cạnh đối diện phải gần bằng nhau
     const W = (top + bot) / 2, H = (lef + rig) / 2;
     const asp = Math.max(W, H) / Math.min(W, H);
-    if (asp < 1.15 || asp > 1.8) return false;
-    for (let i = 0; i < 4; i++) {
+    if (asp < 1.15 || asp > 1.8) return false;                                // A4 ~ 1.41
+    for (let i = 0; i < 4; i++) {                                              // góc gần vuông
         const p = q[(i + 3) % 4], c = q[i], nx = q[(i + 1) % 4];
         const v1x = p.x - c.x, v1y = p.y - c.y, v2x = nx.x - c.x, v2y = nx.y - c.y;
         const cos = (v1x * v2x + v1y * v2y) / (Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y));
@@ -2888,10 +2917,11 @@ function capComponentQuad(mask, w, h) {
     let a = 0;
     for (let i = 0; i < 4; i++) { const p = q[i], nx = q[(i + 1) % 4]; a += p.x * nx.y - nx.x * p.y; }
     a = Math.abs(a) / 2;
-    if (a < n * 0.2 || bestArea / a < 0.78) return null;
+    if (a < n * 0.2 || bestArea / a < 0.78) return null;       // hình không lấp đầy khung => không phải tờ giấy
     return q;
 }
 
+// Làm mờ nhanh (trung bình hộp, 2 lượt) để xóa chữ nhỏ, chỉ giữ biên lớn của tờ giấy
 function capBoxBlur(src, w, h, rad) {
     let a = src, n = w * h;
     for (let pass = 0; pass < 2; pass++) {
@@ -2921,6 +2951,7 @@ function capBoxBlur(src, w, h, rad) {
     return a;
 }
 
+// Biên lớn: Sobel trên ảnh đã làm mờ, ngưỡng cố định, nở 1 điểm
 function capBigEdges(gray, w, h) {
     const bl = capBoxBlur(gray, w, h, 2);
     const n = w * h, e = new Uint8Array(n);
@@ -2939,7 +2970,7 @@ function capPaperQuadData(data, w, h) {
     const hist = new Array(256).fill(0);
     for (let i = 0, j = 0; j < n; i += 4, j++) {
         const r = data[i], g = data[i + 1], b = data[i + 2];
-        const mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+        const mn = r < g ? (r < b ? r : b) : (g < b ? g : b);   // kênh thấp nhất: giấy trắng thì cao, nền màu thì thấp
         lum[j] = mn;
         gray[j] = 0.299 * r + 0.587 * g + 0.114 * b;
         hist[mn]++;
@@ -2960,16 +2991,18 @@ function capPaperQuadData(data, w, h) {
     const mask = new Uint8Array(n);
     for (let j = 0; j < n; j++) mask[j] = lum[j] > thr ? 1 : 0;
 
+    // Cách 1: cắt rời các tờ giấy chồng sát nhau bằng đường biên của chúng
     let q1 = null;
     const edges = capBigEdges(gray, w, h);
     const split = new Uint8Array(n);
     for (let j = 0; j < n; j++) split[j] = (mask[j] && !edges[j]) ? 1 : 0;
     for (const r of [2, 4, 7, 11]) {
-        const m = capMorph(capMorph(split, w, h, r, false), w, h, r, true);
+        const m = capMorph(capMorph(split, w, h, r, false), w, h, r, true);   // mở: bỏ phần dính thừa
         const q = capComponentQuad(m, w, h);
         if (q && capQuadValid(q)) { q1 = capGrowQuad(q, w, h, 2); break; }
     }
 
+    // Cách 2: giấy đứng riêng (biên chính xác hơn khi không dính giấy khác)
     let q2 = null;
     const closed = capMorph(capMorph(mask, w, h, 3, true), w, h, 3, false);
     for (const r of [0, 5, 10]) {
@@ -2980,13 +3013,16 @@ function capPaperQuadData(data, w, h) {
 
     let q = null;
     if (q1 && q2) {
+        // Cách 2 to hơn hẳn cách 1 => đã dính cả giấy khác vào, dùng cách 1
         q = capPolyArea(q2) > capPolyArea(q1) * 1.12 ? q1 : q2;
     } else q = q1 || q2;
     if (!q) return null;
     return capRefineQuad(q, closed, edges, w, h);
 }
 
+// Tinh chỉnh từng cạnh: bắn tia từ trong ra ngoài tìm mép giấy thật, rồi khớp đường thẳng (bỏ điểm lạc)
 function capFitLine(pts) {
+    // trả về {px,py,dx,dy,inl} : đường qua (px,py) hướng (dx,dy), khớp bằng RANSAC + bình phương nhỏ nhất
     const n = pts.length;
     if (n < 6) return null;
     let best = null, bestCnt = -1, seed = 12345;
@@ -3036,13 +3072,13 @@ function capRefineQuad(q, mask, edges, w, h) {
         }
         const ln = capFitLine(pts);
         const lnn = ln || { px: A.x, py: A.y, dx: ux, dy: uy };
-        const pad = 0.022 * L;
+        const pad = 0.022 * L;                 // chừa lề nhỏ để không cắt vào chữ sát mép giấy
         lnn.px += nx * pad; lnn.py += ny * pad;
         lines.push(lnn);
     }
     const out = [];
     for (let i = 0; i < 4; i++) {
-        const a = lines[(i + 3) % 4], b = lines[i];
+        const a = lines[(i + 3) % 4], b = lines[i];            // góc i = giao của cạnh (i-1) và cạnh i
         const den = a.dx * b.dy - a.dy * b.dx;
         if (Math.abs(den) < 1e-6) return q;
         const t = ((b.px - a.px) * b.dy - (b.py - a.py) * b.dx) / den;
@@ -3057,6 +3093,7 @@ function capPolyArea(q) {
     return Math.abs(a) / 2;
 }
 
+// Đẩy 4 góc ra ngoài một chút (vì đã trừ phần biên khi tách giấy)
 function capGrowQuad(q, w, h, d) {
     const cx = (q[0].x + q[1].x + q[2].x + q[3].x) / 4, cy = (q[0].y + q[1].y + q[2].y + q[3].y) / 4;
     return q.map(p => {
@@ -3073,7 +3110,7 @@ function capFindQuad(orig) {
     return q ? q.map(p => ({ x: p.x * sx, y: p.y * sy })) : null;
 }
 
-// ---------- Làm rõ chữ ----------
+// ---------- Làm rõ chữ: bỏ bóng, nền trắng, chữ đậm ----------
 
 function capEnhance(src) {
     const w = src.width, h = src.height, B = 32;
@@ -3166,6 +3203,7 @@ function capParsePayload(s) {
     return m ? { ma: m[1], page: +m[2], total: +m[3] } : null;
 }
 
+// Góc xoay thuận chiều cần áp dụng để mã QR (và cả trang) đứng thẳng
 function capQrRotation(loc) {
     const a = Math.atan2(
         loc.topRightCorner.y - loc.topLeftCorner.y,
@@ -3191,11 +3229,12 @@ function capMaskQuad(img, loc) {
     }
 }
 
+// Tìm mã QR của biên bản (bỏ qua mã QR ngân hàng ở đầu trang)
 async function capReadQR(canvas) {
     let jq;
     try { jq = await capLib("jsqr"); } catch (e) { return null; }
     const seen = {};
-    let other = null;
+    let other = null;                       // mã QR khác (vd. QR ngân hàng in thẳng trên trang)
     for (const ms of [1200, 1800]) {
         const c = capScaleTo(canvas, ms);
         if (seen[c.width]) continue;
@@ -3636,58 +3675,6 @@ function capBuildPdf() {
     return uri.slice(uri.indexOf("base64,") + 7);
 }
 
-// Tải lên có đo tiến độ và đếm số giây còn chờ
-function capUpload(url, body, onStatus) {
-    return new Promise((resolve, reject) => {
-        const SERVER_EST = 6; // ước tính số giây Apps Script lưu file vào Drive
-        const xhr = new XMLHttpRequest();
-        const t0 = Date.now();
-        let loaded = 0, total = body.length, upDoneAt = 0, finished = false;
-
-        const stop = () => { finished = true; clearInterval(timer); };
-
-        const tick = () => {
-            if (finished) return;
-            const now = Date.now();
-            if (!upDoneAt) {
-                const el = (now - t0) / 1000;
-                const pct = total ? Math.min(99, Math.floor(loaded / total * 100)) : 0;
-                let msg = "Đang tải lên " + pct + "%";
-                if (loaded > 0 && el > 0.8) {
-                    const rem = (total - loaded) / (loaded / el) + SERVER_EST;
-                    msg += " - còn khoảng " + Math.ceil(rem) + " giây";
-                } else {
-                    msg += " - đang tính thời gian...";
-                }
-                onStatus(msg);
-            } else {
-                const rem = SERVER_EST - (now - upDoneAt) / 1000;
-                onStatus("Đã tải lên xong, đang lưu vào Google Drive - " +
-                    (rem > 0 ? "còn khoảng " + Math.ceil(rem) + " giây" : "sắp xong..."));
-            }
-        };
-        const timer = setInterval(tick, 300);
-        tick();
-
-        xhr.open("POST", url);
-        xhr.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
-        xhr.timeout = 180000;
-        xhr.upload.onprogress = e => {
-            loaded = e.loaded;
-            if (e.lengthComputable) total = e.total;
-        };
-        xhr.upload.onload = () => { upDoneAt = Date.now(); };
-        xhr.onload = () => {
-            stop();
-            try { resolve(JSON.parse(xhr.responseText)); }
-            catch (e) { reject(new Error("Máy chủ trả về dữ liệu không hợp lệ")); }
-        };
-        xhr.onerror = () => { stop(); reject(new Error("Lỗi mạng khi tải lên")); };
-        xhr.ontimeout = () => { stop(); reject(new Error("Quá thời gian chờ, hãy thử lại")); };
-        xhr.send(body);
-    });
-}
-
 async function capSend() {
     if (cap.busy) return;
     if (cap.photos.some(p => p.busy)) { capStatus("Đang xử lý ảnh, vui lòng chờ xong rồi bấm lưu.", "err"); return; }
@@ -3702,16 +3689,16 @@ async function capSend() {
     const name = capFileName();
     cap.busy = true;
     capRender();
-    capStatus("Đang tạo PDF...");
+    capStatus("Đang tạo PDF và tải lên, vui lòng chờ...");
 
     try {
-        await new Promise(r => setTimeout(r, 30)); // để trình duyệt kịp hiện dòng trạng thái
         const pdf = capBuildPdf();
-        const j = await capUpload(
-            UPLOAD_URL,
-            JSON.stringify({ name: name, pdf: pdf }),
-            msg => capStatus(msg)
-        );
+        const res = await fetch(UPLOAD_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ name: name, pdf: pdf })
+        });
+        const j = await res.json();
         if (!j.ok) throw new Error(j.error || "Tải lên thất bại");
 
         // Hiện ngay link vừa tải lên (trang chính sẽ cập nhật theo Google Sheet sau ít phút)
