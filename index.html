@@ -699,7 +699,7 @@ tbody tr:hover {
 }
 .cap-box h2 { font-size: 26px; color: #0f4c81; margin: 6px 0 14px; }
 .cap-box p { margin: 12px 0; }
-.cap-box input[type=date] { min-width: 0; width: 100%; margin-top: 6px; }
+.cap-box input[type=date], .cap-box input[type=password] { min-width: 0; width: 100%; margin-top: 6px; }
 .cap-opts { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0; font-size: 19px; }
 .cap-opts label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .cap-opts input[type=checkbox] { min-width: 0; width: 22px; height: 22px; padding: 0; }
@@ -904,6 +904,7 @@ tbody tr:hover {
             <span class="label">Ngày biên bản đối chiếu:</span>
             <input type="date" id="cpDate">
         </p>
+
         <div class="cap-opts">
             <label><input type="checkbox" id="cpCrop" checked> Tự cắt khung giấy</label>
             <label><input type="checkbox" id="cpEnh" checked> Làm rõ chữ (nền trắng)</label>
@@ -2621,9 +2622,9 @@ byId("dcCsv").addEventListener("change", e => {
 // ================= CHỤP BIÊN BẢN ĐỐI CHIẾU ĐÃ KÝ -> PDF -> DRIVE =================
 
 // Dán link triển khai Apps Script (kết thúc bằng /exec) vào đây:
-const UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz0HJlp_I87LN9b9Yw4PSp5-Q9xRmxP-qJJCzzBT1C5jtpGJJd07EzaT0KeALxen3yi/exec";
+const UPLOAD_URL = "DÁN_LINK_WEB_APP_VÀO_ĐÂY";
 const CAP_MAX_PAGES = 10;
-const CAP_MAX_SIDE = 1800;
+const CAP_MAX_SIDE = 1500;
 
 // Các thư viện nặng chỉ tải khi nhân viên mở màn hình chụp (lần đầu), sau đó trình duyệt tự nhớ
 const CAP_LIBS = {
@@ -2813,7 +2814,7 @@ function capWarp(src, quad) {
     const tl = quad[0], tr = quad[1], br = quad[2], bl = quad[3];
     let W = Math.max(d(tl, tr), d(bl, br));
     let H = Math.max(d(tl, bl), d(tr, br));
-    const k = Math.min(1, 2000 / Math.max(W, H));
+    const k = Math.min(1, 1500 / Math.max(W, H));
     W = Math.round(W * k);
     H = Math.round(H * k);
     if (W < 50 || H < 50) return src;
@@ -3046,7 +3047,7 @@ async function capReadQR(canvas) {
     let jq;
     try { jq = await capLib("jsqr"); } catch (e) { return null; }
     const seen = {};
-    for (const ms of [1400, 900, 2000]) {
+    for (const ms of [1200, 1800]) {
         const c = capScaleTo(canvas, ms);
         if (seen[c.width]) continue;
         seen[c.width] = true;
@@ -3064,8 +3065,8 @@ async function capReadQR(canvas) {
 
 async function capDetect(work, orig, setMsg) {
     setMsg("Đang đọc mã QR...");
-    let q = await capTimeout(capReadQR(work).catch(() => null), 15000, null);
-    if (!q && orig !== work) q = await capTimeout(capReadQR(orig).catch(() => null), 15000, null);
+    let q = await capTimeout(capReadQR(work).catch(() => null), 12000, null);
+    if (!q && orig !== work) q = await capTimeout(capReadQR(orig).catch(() => null), 12000, null);
     if (q) return { rot: q.rot, info: q.info, method: "QR" };
     return { rot: 0, info: null, method: "" };
 }
@@ -3123,7 +3124,7 @@ async function capProcess(p) {
         let out = rot ? capRotate(work, rot) : (work === orig ? orig : work);
         if (capEnhOn()) out = capEnhance(out);
 
-        p.dataUrl = out.toDataURL("image/jpeg", 0.75);
+        p.dataUrl = out.toDataURL("image/jpeg", 0.7);
         p.w = out.width;
         p.h = out.height;
         const th = capScaleTo(out, 320);
@@ -3231,7 +3232,7 @@ function capValidate(autoSort) {
             });
         }
         cap.photos.forEach((p, i) => {
-            if (!p.method) warns.push({ cls: "warn", text: "Ảnh " + (i + 1) + ": chưa nhận được chiều, hãy xem ảnh có đứng đúng chưa." });
+            if (!p.method) warns.push({ cls: "warn", text: "Ảnh " + (i + 1) + ": không thấy mã QR nên chưa tự nhận chiều, hãy xem ảnh có đứng đúng chưa (nút ↻ để xoay)." });
         });
     }
 
@@ -3354,7 +3355,6 @@ function openCapture(r) {
     byId("cpCust").textContent = r.ma + " - " + r.ten;
     const t = new Date();
     byId("cpDate").value = t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
-    try { localStorage.removeItem("capCode"); } catch (e) {}
     capStatus("");
     capValidate(false);
     capRender();
@@ -3549,7 +3549,6 @@ byId("cpCrop").addEventListener("change", () => {
     capReprocessAll(true);
 });
 byId("cpEnh").addEventListener("change", () => capReprocessAll(false));
-
 
 // ================= ĐÓNG CHI TIẾT =================
 
