@@ -1433,12 +1433,8 @@ function appendFileLinks(parent, raw, linkText, maxShow) {
         entries.push({ url, label });
     }
 
-   if (!entries.length) return false;
-        if (maxShow && entries.length > maxShow) entries.splice(0, entries.length - maxShow);
- 
-    (Giả định: biên bản mới được script của bạn nối vào CUỐI ô. Nếu script
-     của bạn đặt biên bản mới lên ĐẦU ô thì đổi dòng trên thành:
-        if (maxShow && entries.length > maxShow) entries.length = maxShow;  )
+    if (!entries.length) return false;
+    if (maxShow && entries.length > maxShow) entries.splice(0, entries.length - maxShow);
 
     const base = linkText || "Xem file";
     entries.forEach((en, i) => {
