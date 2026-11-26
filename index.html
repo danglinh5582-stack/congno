@@ -687,7 +687,39 @@ tbody tr:hover {
     }
 
 }
-
+/* ================= CHỤP BIÊN BẢN ĐÃ KÝ ================= */
+.cap-modal { z-index: 1150; }
+.cap-box {
+    background: #fff; max-width: 700px; width: 100%;
+    margin: 20px auto; padding: 22px; border-radius: 12px;
+    font-size: 21px; line-height: 1.6;
+}
+.cap-box h2 { font-size: 26px; color: #0f4c81; margin: 6px 0 14px; }
+.cap-box p { margin: 12px 0; }
+.cap-box input[type=date], .cap-box input[type=password] { min-width: 0; width: 100%; margin-top: 6px; }
+.cap-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+.cap-btn {
+    flex: 1; min-width: 200px; text-align: center; padding: 14px;
+    border-radius: 8px; background: #0f4c81; color: #fff;
+    font-size: 21px; font-weight: bold; cursor: pointer;
+}
+.cap-btn.alt { background: #5a6b7b; }
+.cap-thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+.cap-thumb { position: relative; width: 110px; }
+.cap-thumb img { width: 100%; display: block; border: 1px solid #ccc; }
+.cap-thumb .no { position: absolute; left: 0; bottom: 0; background: #0f4c81; color: #fff; font-size: 15px; padding: 1px 7px; }
+.cap-thumb button {
+    position: absolute; top: -8px; right: -8px; width: 28px; height: 28px;
+    border: 0; border-radius: 50%; background: #c0392b; color: #fff;
+    font-size: 18px; line-height: 1; cursor: pointer;
+}
+.cap-name { font-size: 17px; color: #555; word-break: break-all; background: #f3f4f6; padding: 8px 10px; border-radius: 6px; }
+#capStatus { margin-top: 12px; font-size: 19px; font-weight: bold; }
+#capStatus.err { color: #c0392b; }
+#capStatus.ok { color: #1e7e34; }
+.dc-btn-open.green { background: #1e7e34; }
+.dc-btn-open.green:hover { background: #166028; }
+.dc-btn-open:disabled { opacity: .5; cursor: default; }
 </style>
 </head>
 
@@ -826,7 +858,38 @@ tbody tr:hover {
 
     </div>
 </div>
-
+<!-- CHỤP BIÊN BẢN ĐỐI CHIẾU ĐÃ KÝ -->
+<div class="modal cap-modal" id="capModal">
+    <div class="cap-box">
+        <span class="close" id="capX">×</span>
+        <h2>Chụp biên bản đối chiếu đã ký</h2>
+        <div id="capCust" style="font-weight:bold"></div>
+ 
+        <p>
+            <span class="label">Ngày biên bản đối chiếu:</span>
+            <input type="date" id="capDate">
+        </p>
+        <p>
+            <span class="label">Mã nhân viên:</span>
+            <input type="password" id="capCode" placeholder="Nhập mã nhân viên" autocomplete="off">
+        </p>
+ 
+        <div class="cap-actions">
+            <label class="cap-btn">📷 Chụp ảnh
+                <input type="file" id="capCam" accept="image/*" capture="environment" hidden>
+            </label>
+            <label class="cap-btn alt">🖼 Chọn từ thư viện
+                <input type="file" id="capGal" accept="image/*" multiple hidden>
+            </label>
+        </div>
+ 
+        <div class="cap-thumbs" id="capThumbs"></div>
+        <div class="cap-name" id="capName"></div>
+ 
+        <button type="button" id="capSend" class="dc-btn-open green" disabled>Lưu biên bản lên hệ thống</button>
+        <div id="capStatus"></div>
+    </div>
+</div>
 <div class="dc-toast" id="dcToast"></div>
 
 <script>
@@ -1350,7 +1413,7 @@ document.getElementById("overdueOnly").addEventListener("change", render);
 // Chữ đứng trước mỗi link là mô tả của mục đó; các mục có thể cách nhau bằng
 // xuống dòng (Alt+Enter), dấu ; hoặc khoảng trắng. Không có mô tả thì chỉ hiện (Xem ...).
 // Trả về true nếu có ít nhất một link; false nếu ô trống / chỉ có chữ thường.
-function appendFileLinks(parent, raw, linkText) {
+function appendFileLinks(parent, raw, linkText, maxShow) {
     const text = String(raw || "").trim();
     const re = /https?:\/\/[^\s"'<>]+/gi;
     const entries = [];
@@ -1370,7 +1433,12 @@ function appendFileLinks(parent, raw, linkText) {
         entries.push({ url, label });
     }
 
-    if (!entries.length) return false;
+   if (!entries.length) return false;
+        if (maxShow && entries.length > maxShow) entries.splice(0, entries.length - maxShow);
+ 
+    (Giả định: biên bản mới được script của bạn nối vào CUỐI ô. Nếu script
+     của bạn đặt biên bản mới lên ĐẦU ô thì đổi dòng trên thành:
+        if (maxShow && entries.length > maxShow) entries.length = maxShow;  )
 
     const base = linkText || "Xem file";
     entries.forEach((en, i) => {
@@ -1437,7 +1505,7 @@ function showDetail(r) {
             link.className = "phone-link";
             link.textContent = item[1];
             p.appendChild(link);
-        } else if (item[3] && appendFileLinks(p, item[1], item[4])) {
+       } else if (item[3] && appendFileLinks(p, item[1], item[4], index === 11 ? 3 : 0)) {
             // đã hiển thị link xem file (xem hàm appendFileLinks)
         } else {
             p.appendChild(document.createTextNode(item[1] || "Chưa cập nhật"));
@@ -1452,6 +1520,14 @@ function showDetail(r) {
     dcBtn.textContent = "Đối chiếu công nợ";
     dcBtn.onclick = () => openRecon(r);
     detail.appendChild(dcBtn);
+ 
+    const capBtn = document.createElement("button");
+    capBtn.type = "button";
+    capBtn.className = "dc-btn-open";
+    capBtn.style.background = "#1e7e34";
+    capBtn.textContent = "Chụp biên bản đối chiếu đã ký";
+    capBtn.onclick = () => openCapture(r);
+    detail.appendChild(capBtn);
 }
 
 // ================= ĐỐI CHIẾU CÔNG NỢ =================
@@ -2487,7 +2563,169 @@ byId("dcCsv").addEventListener("change", e => {
         refreshRecon();
     });
 });
-
+// ================= CHỤP BIÊN BẢN ĐỐI CHIẾU ĐÃ KÝ -> PDF -> DRIVE =================
+ 
+// Dán link triển khai Apps Script (kết thúc bằng /exec) vào đây:
+const UPLOAD_URL = "DÁN_LINK_WEB_APP_VÀO_ĐÂY";
+const CAP_MAX_PAGES = 10;
+ 
+let cap = { cust: null, photos: [], busy: false };
+ 
+function capFileName() {
+    const r = cap.cust;
+    const v = byId("capDate").value;          // yyyy-mm-dd
+    if (!r || !v) return "";
+    const p = v.split("-");
+    const d = p[2] + "." + p[1] + "." + p[0].slice(-2);
+    return ("DCCN_" + r.ma + "_" + r.ten + "_" + d).replace(/[\\\/:*?"<>|\r\n]+/g, "-");
+}
+ 
+function capRefresh() {
+    const box = byId("capThumbs");
+    box.innerHTML = "";
+    cap.photos.forEach((p, i) => {
+        const w = document.createElement("div");
+        w.className = "cap-thumb";
+        const im = document.createElement("img");
+        im.src = p.dataUrl;
+        const no = document.createElement("span");
+        no.className = "no";
+        no.textContent = "Trang " + (i + 1);
+        const x = document.createElement("button");
+        x.type = "button";
+        x.textContent = "×";
+        x.onclick = () => { cap.photos.splice(i, 1); capRefresh(); };
+        w.appendChild(im); w.appendChild(no); w.appendChild(x);
+        box.appendChild(w);
+    });
+    const nm = capFileName();
+    byId("capName").textContent = nm ? "Tên file: " + nm + ".pdf" : "";
+    byId("capSend").disabled = cap.busy || !cap.photos.length || !nm;
+}
+ 
+function capStatus(msg, cls) {
+    const s = byId("capStatus");
+    s.textContent = msg || "";
+    s.className = cls || "";
+}
+ 
+function openCapture(r) {
+    cap = { cust: r, photos: [], busy: false };
+    byId("capCust").textContent = r.ma + " - " + r.ten;
+    const t = new Date();
+    byId("capDate").value = t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
+    try { byId("capCode").value = localStorage.getItem("capCode") || ""; } catch (e) {}
+    capStatus("");
+    capRefresh();
+    byId("capModal").style.display = "block";
+}
+ 
+function closeCapture() {
+    byId("capModal").style.display = "none";
+}
+ 
+// Đọc ảnh, thu nhỏ & nén để file nhẹ (khoảng 200-500 KB / trang)
+function capLoadPhoto(file) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const im = new Image();
+        im.onload = () => {
+            const MAX = 1700;
+            let w = im.naturalWidth, h = im.naturalHeight;
+            const k = Math.min(1, MAX / Math.max(w, h));
+            w = Math.round(w * k); h = Math.round(h * k);
+            const c = document.createElement("canvas");
+            c.width = w; c.height = h;
+            const g = c.getContext("2d");
+            g.fillStyle = "#fff";
+            g.fillRect(0, 0, w, h);
+            g.drawImage(im, 0, 0, w, h);
+            URL.revokeObjectURL(url);
+            resolve({ dataUrl: c.toDataURL("image/jpeg", 0.72), w, h });
+        };
+        im.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Không đọc được ảnh")); };
+        im.src = url;
+    });
+}
+ 
+async function capAddFiles(files) {
+    capStatus("");
+    for (const f of Array.from(files || [])) {
+        if (cap.photos.length >= CAP_MAX_PAGES) {
+            capStatus("Tối đa " + CAP_MAX_PAGES + " trang cho một biên bản.", "err");
+            break;
+        }
+        try { cap.photos.push(await capLoadPhoto(f)); }
+        catch (e) { capStatus(e.message, "err"); }
+    }
+    capRefresh();
+}
+ 
+// Gộp các ảnh thành 1 file PDF (mỗi ảnh 1 trang, giữ đúng chiều ngang/dọc)
+function capBuildPdf() {
+    const { jsPDF } = window.jspdf;
+    let pdf = null;
+    cap.photos.forEach((p, i) => {
+        const orient = p.w > p.h ? "l" : "p";
+        if (!pdf) pdf = new jsPDF({ orientation: orient, unit: "mm", format: "a4", compress: true });
+        else pdf.addPage("a4", orient);
+        const pw = pdf.internal.pageSize.getWidth();
+        const ph = pdf.internal.pageSize.getHeight();
+        const m = 4;
+        const k = Math.min((pw - m * 2) / p.w, (ph - m * 2) / p.h);
+        const iw = p.w * k, ih = p.h * k;
+        pdf.addImage(p.dataUrl, "JPEG", (pw - iw) / 2, (ph - ih) / 2, iw, ih, undefined, "FAST");
+    });
+    const uri = pdf.output("datauristring");
+    return uri.slice(uri.indexOf("base64,") + 7);
+}
+ 
+async function capSend() {
+    if (cap.busy) return;
+    if (!window.jspdf || !window.jspdf.jsPDF) { capStatus("Chưa tải được thư viện PDF. Kiểm tra mạng rồi tải lại trang.", "err"); return; }
+    if (/DÁN_LINK/.test(UPLOAD_URL)) { capStatus("Chưa cấu hình link upload (UPLOAD_URL).", "err"); return; }
+ 
+    const code = byId("capCode").value.trim();
+    if (!code) { capStatus("Vui lòng nhập mã nhân viên.", "err"); return; }
+ 
+    const name = capFileName();
+    cap.busy = true;
+    byId("capSend").disabled = true;
+    capStatus("Đang tạo PDF và tải lên, vui lòng chờ...");
+ 
+    try {
+        const pdf = capBuildPdf();
+        const res = await fetch(UPLOAD_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ code, name, pdf })
+        });
+        const j = await res.json();
+        if (!j.ok) throw new Error(j.error || "Tải lên thất bại");
+ 
+        try { localStorage.setItem("capCode", code); } catch (e) {}
+ 
+        // Hiện ngay link vừa tải lên (trang chính sẽ cập nhật theo Google Sheet sau ít phút)
+        const dd = name.split("_").pop();
+        const r = cap.cust;
+        r.bbky = ((r.bbky || "") + "\nNgày " + dd + " " + j.url).trim();
+ 
+        closeCapture();
+        showDetail(r);
+        showToast("Đã lưu biên bản: " + j.name + ".pdf");
+    } catch (e) {
+        capStatus("Lỗi: " + (e && e.message ? e.message : e), "err");
+    } finally {
+        cap.busy = false;
+        capRefresh();
+    }
+}
+ 
+byId("capCam").addEventListener("change", e => { capAddFiles(e.target.files); e.target.value = ""; });
+byId("capGal").addEventListener("change", e => { capAddFiles(e.target.files); e.target.value = ""; });
+byId("capDate").addEventListener("change", capRefresh);
+byId("capSend").addEventListener("click", capSend);
+byId("capX").addEventListener("click", closeCapture);
 // ================= ĐÓNG CHI TIẾT =================
 
 function closeModal() {
