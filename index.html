@@ -2921,14 +2921,58 @@ function capComponentQuad(mask, w, h) {
     return q;
 }
 
+// Làm mờ nhanh (trung bình hộp, 2 lượt) để xóa chữ nhỏ, chỉ giữ biên lớn của tờ giấy
+function capBoxBlur(src, w, h, rad) {
+    let a = src, n = w * h;
+    for (let pass = 0; pass < 2; pass++) {
+        const t = new Float32Array(n), o = new Float32Array(n);
+        for (let y = 0; y < h; y++) {
+            let sum = 0, cnt = 0;
+            for (let x = -rad; x <= rad; x++) if (x >= 0 && x < w) { sum += a[y * w + x]; cnt++; }
+            for (let x = 0; x < w; x++) {
+                t[y * w + x] = sum / cnt;
+                const add = x + rad + 1, rem = x - rad;
+                if (add < w) { sum += a[y * w + add]; cnt++; }
+                if (rem >= 0) { sum -= a[y * w + rem]; cnt--; }
+            }
+        }
+        for (let x = 0; x < w; x++) {
+            let sum = 0, cnt = 0;
+            for (let y = -rad; y <= rad; y++) if (y >= 0 && y < h) { sum += t[y * w + x]; cnt++; }
+            for (let y = 0; y < h; y++) {
+                o[y * w + x] = sum / cnt;
+                const add = y + rad + 1, rem = y - rad;
+                if (add < h) { sum += t[add * w + x]; cnt++; }
+                if (rem >= 0) { sum -= t[rem * w + x]; cnt--; }
+            }
+        }
+        a = o;
+    }
+    return a;
+}
+
+// Biên lớn: Sobel trên ảnh đã làm mờ, ngưỡng cố định, nở 1 điểm
+function capBigEdges(gray, w, h) {
+    const bl = capBoxBlur(gray, w, h, 2);
+    const n = w * h, e = new Uint8Array(n);
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        const gx = (bl[i - w + 1] + 2 * bl[i + 1] + bl[i + w + 1]) - (bl[i - w - 1] + 2 * bl[i - 1] + bl[i + w - 1]);
+        const gy = (bl[i + w - 1] + 2 * bl[i + w] + bl[i + w + 1]) - (bl[i - w - 1] + 2 * bl[i - w] + bl[i - w + 1]);
+        if (Math.abs(gx) + Math.abs(gy) > 36) e[i] = 1;
+    }
+    return capMorph(e, w, h, 1, true);
+}
+
 function capPaperQuadData(data, w, h) {
     const n = w * h;
-    const lum = new Uint8Array(n);
+    const lum = new Uint8Array(n), gray = new Float32Array(n);
     const hist = new Array(256).fill(0);
     for (let i = 0, j = 0; j < n; i += 4, j++) {
         const r = data[i], g = data[i + 1], b = data[i + 2];
         const mn = r < g ? (r < b ? r : b) : (g < b ? g : b);   // kênh thấp nhất: giấy trắng thì cao, nền màu thì thấp
         lum[j] = mn;
+        gray[j] = 0.299 * r + 0.587 * g + 0.114 * b;
         hist[mn]++;
     }
     let sum = 0;
@@ -2947,16 +2991,115 @@ function capPaperQuadData(data, w, h) {
     const mask = new Uint8Array(n);
     for (let j = 0; j < n; j++) mask[j] = lum[j] > thr ? 1 : 0;
 
-    // đóng lỗ do chữ/đường kẻ
-    const closed = capMorph(capMorph(mask, w, h, 3, true), w, h, 3, false);
+    // Cách 1: cắt rời các tờ giấy chồng sát nhau bằng đường biên của chúng
+    let q1 = null;
+    const edges = capBigEdges(gray, w, h);
+    const split = new Uint8Array(n);
+    for (let j = 0; j < n; j++) split[j] = (mask[j] && !edges[j]) ? 1 : 0;
+    for (const r of [2, 4, 7, 11]) {
+        const m = capMorph(capMorph(split, w, h, r, false), w, h, r, true);   // mở: bỏ phần dính thừa
+        const q = capComponentQuad(m, w, h);
+        if (q && capQuadValid(q)) { q1 = capGrowQuad(q, w, h, 2); break; }
+    }
 
-    // thử lần lượt: nguyên mask, rồi "mở" (co rồi nở) để cắt đứt chỗ giấy khác dính vào
-    for (const r of [0, 5, 10, 16]) {
+    // Cách 2: giấy đứng riêng (biên chính xác hơn khi không dính giấy khác)
+    let q2 = null;
+    const closed = capMorph(capMorph(mask, w, h, 3, true), w, h, 3, false);
+    for (const r of [0, 5, 10]) {
         const m = r ? capMorph(capMorph(closed, w, h, r, false), w, h, r, true) : closed;
         const q = capComponentQuad(m, w, h);
-        if (q && capQuadValid(q)) return q;
+        if (q && capQuadValid(q)) { q2 = q; break; }
     }
-    return null;
+
+    let q = null;
+    if (q1 && q2) {
+        // Cách 2 to hơn hẳn cách 1 => đã dính cả giấy khác vào, dùng cách 1
+        q = capPolyArea(q2) > capPolyArea(q1) * 1.12 ? q1 : q2;
+    } else q = q1 || q2;
+    if (!q) return null;
+    return capRefineQuad(q, closed, edges, w, h);
+}
+
+// Tinh chỉnh từng cạnh: bắn tia từ trong ra ngoài tìm mép giấy thật, rồi khớp đường thẳng (bỏ điểm lạc)
+function capFitLine(pts) {
+    // trả về {px,py,dx,dy,inl} : đường qua (px,py) hướng (dx,dy), khớp bằng RANSAC + bình phương nhỏ nhất
+    const n = pts.length;
+    if (n < 6) return null;
+    let best = null, bestCnt = -1, seed = 12345;
+    const rnd = m => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % m; };
+    for (let it = 0; it < 80; it++) {
+        const a = pts[rnd(n)], b = pts[rnd(n)];
+        const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+        if (L < 20) continue;
+        let cnt = 0;
+        for (const p of pts) if (Math.abs((p.x - a.x) * dy - (p.y - a.y) * dx) / L < 1.6) cnt++;
+        if (cnt > bestCnt) { bestCnt = cnt; best = { a: a, dx: dx / L, dy: dy / L }; }
+    }
+    if (!best || bestCnt < n * 0.45) return null;
+    const inl = pts.filter(p => Math.abs((p.x - best.a.x) * best.dy - (p.y - best.a.y) * best.dx) < 1.6);
+    let mx = 0, my = 0;
+    inl.forEach(p => { mx += p.x; my += p.y; });
+    mx /= inl.length; my /= inl.length;
+    let sxx = 0, syy = 0, sxy = 0;
+    inl.forEach(p => { sxx += (p.x - mx) * (p.x - mx); syy += (p.y - my) * (p.y - my); sxy += (p.x - mx) * (p.y - my); });
+    const ang = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+    return { px: mx, py: my, dx: Math.cos(ang), dy: Math.sin(ang), cnt: bestCnt };
+}
+
+function capRefineQuad(q, mask, edges, w, h) {
+    const cx = (q[0].x + q[1].x + q[2].x + q[3].x) / 4, cy = (q[0].y + q[1].y + q[2].y + q[3].y) / 4;
+    const lines = [];
+    for (let i = 0; i < 4; i++) {
+        const A = q[i], B = q[(i + 1) % 4];
+        const L = Math.hypot(B.x - A.x, B.y - A.y);
+        const ux = (B.x - A.x) / L, uy = (B.y - A.y) / L;
+        let nx = uy, ny = -ux;
+        if (nx * ((A.x + B.x) / 2 - cx) + ny * ((A.y + B.y) / 2 - cy) < 0) { nx = -nx; ny = -ny; }
+        const maxd = Math.round(0.16 * L), inset = Math.max(4, Math.round(0.02 * L));
+        const pts = [];
+        for (let t = 0.1; t <= 0.9001; t += 0.025) {
+            const sx = A.x + ux * t * L - nx * inset, sy = A.y + uy * t * L - ny * inset;
+            let zeros = 0, hit = -1;
+            for (let k = 0; k <= maxd + inset; k++) {
+                const x = Math.round(sx + nx * k), y = Math.round(sy + ny * k);
+                if (x < 0 || y < 0 || x >= w || y >= h) { hit = Math.max(0, k - 1); break; }
+                const j = y * w + x;
+                if (!mask[j]) { zeros++; if (zeros >= 3) { hit = k - 2; break; } } else zeros = 0;
+                if (edges[j] && k > inset + 1) { hit = k; break; }
+            }
+            if (hit < 0) hit = maxd + inset;
+            pts.push({ x: sx + nx * hit, y: sy + ny * hit });
+        }
+        const ln = capFitLine(pts);
+        const lnn = ln || { px: A.x, py: A.y, dx: ux, dy: uy };
+        const pad = 0.022 * L;                 // chừa lề nhỏ để không cắt vào chữ sát mép giấy
+        lnn.px += nx * pad; lnn.py += ny * pad;
+        lines.push(lnn);
+    }
+    const out = [];
+    for (let i = 0; i < 4; i++) {
+        const a = lines[(i + 3) % 4], b = lines[i];            // góc i = giao của cạnh (i-1) và cạnh i
+        const den = a.dx * b.dy - a.dy * b.dx;
+        if (Math.abs(den) < 1e-6) return q;
+        const t = ((b.px - a.px) * b.dy - (b.py - a.py) * b.dx) / den;
+        out.push({ x: Math.max(0, Math.min(w - 1, a.px + a.dx * t)), y: Math.max(0, Math.min(h - 1, a.py + a.dy * t)) });
+    }
+    return capQuadValid(out) && capPolyArea(out) > capPolyArea(q) * 0.85 ? out : q;
+}
+
+function capPolyArea(q) {
+    let a = 0;
+    for (let i = 0; i < q.length; i++) { const p = q[i], nx = q[(i + 1) % q.length]; a += p.x * nx.y - nx.x * p.y; }
+    return Math.abs(a) / 2;
+}
+
+// Đẩy 4 góc ra ngoài một chút (vì đã trừ phần biên khi tách giấy)
+function capGrowQuad(q, w, h, d) {
+    const cx = (q[0].x + q[1].x + q[2].x + q[3].x) / 4, cy = (q[0].y + q[1].y + q[2].y + q[3].y) / 4;
+    return q.map(p => {
+        const dx = p.x - cx, dy = p.y - cy, L = Math.hypot(dx, dy) || 1;
+        return { x: Math.max(0, Math.min(w - 1, p.x + dx / L * d)), y: Math.max(0, Math.min(h - 1, p.y + dy / L * d)) };
+    });
 }
 
 function capFindQuad(orig) {
@@ -3536,7 +3679,6 @@ async function capSend() {
     if (cap.busy) return;
     if (cap.photos.some(p => p.busy)) { capStatus("Đang xử lý ảnh, vui lòng chờ xong rồi bấm lưu.", "err"); return; }
     if (!window.jspdf || !window.jspdf.jsPDF) { capStatus("Chưa tải được thư viện PDF. Kiểm tra mạng rồi tải lại trang.", "err"); return; }
-    if (/DÁN_LINK/.test(UPLOAD_URL)) { capStatus("Chưa cấu hình link upload (UPLOAD_URL).", "err"); return; }
 
     capValidate(false);
     if (cap.blocking) {
