@@ -912,6 +912,7 @@ tbody tr:hover {
         <div class="cap-opts">
             <label><input type="checkbox" id="cpCrop" checked> Tự cắt khung giấy</label>
             <label><input type="checkbox" id="cpEnh" checked> Làm rõ chữ (nền trắng)</label>
+            <label title="Chỉ cần khi biên bản cũ chưa in mã QR. Chậm và nặng."><input type="checkbox" id="cpOcr"> Đọc chữ để nhận chiều (chậm, cho biên bản cũ chưa có QR)</label>
         </div>
 
         <div class="cap-actions">
@@ -2654,6 +2655,7 @@ function newCap(cust) {
 
 const capLibP = {};
 const capLibFail = {};
+let capCvObj = null;
 
 function capLoadScript(urls) {
     return urls.reduce((p, u) => p.catch(() => new Promise((res, rej) => {
@@ -2692,17 +2694,17 @@ function capLib(name) {
     } else if (name === "tess") {
         p = capLoadScript(CAP_LIBS.tess).then(() => window.Tesseract);
     } else {
-        p = capLoadScript(CAP_LIBS.cv).then(capCvReady);
+        p = capLoadScript(CAP_LIBS.cv).then(capCvReady).then(w => { capCvObj = w.cv; return w; });
     }
     capLibP[name] = p.then(v => { if (!v) throw new Error("lib " + name); return v; }, e => { capLibFail[name] = true; throw e; });
     return capLibP[name];
 }
 
-function capCvWait(ms) {
-    return Promise.race([
-        capLib("cv").then(w => w.cv),
-        new Promise(res => setTimeout(() => res(null), ms))
-    ]).catch(() => null);
+// Trả về OpenCV nếu đã sẵn sàng, KHÔNG chờ (để ảnh hiện ngay)
+function capCvNow() { return capCvObj; }
+
+function capTimeout(promise, ms, fallback) {
+    return Promise.race([promise, new Promise(res => setTimeout(() => res(fallback), ms))]);
 }
 
 // ---------- Canvas tiện ích ----------
@@ -3061,7 +3063,7 @@ async function capReadQR(canvas) {
         seen[c.width] = true;
         const img = c.getContext("2d").getImageData(0, 0, c.width, c.height);
         for (let n = 0; n < 4; n++) {
-            const code = jq(img.data, c.width, c.height, { inversionAttempts: "attemptBoth" });
+            const code = jq(img.data, c.width, c.height, { inversionAttempts: "dontInvert" });
             if (!code) break;
             const info = capParsePayload(code.data);
             if (info) return { info: info, rot: capQrRotation(code.location) };
@@ -3107,24 +3109,29 @@ async function capOcrPageNo(canvas) {
     return m ? { page: +m[1], total: +m[2] } : null;
 }
 
+async function capOcrFlow(work) {
+    const o = await capOcrOrient(work);
+    if (o.words < 5) return null;
+    let info = null;
+    try {
+        const pn = await capOcrPageNo(capRotate(work, o.rot));
+        if (pn) info = { ma: "", page: pn.page, total: pn.total };
+    } catch (e) {}
+    return { rot: o.rot, info: info, method: "OCR" };
+}
+
 async function capDetect(work, orig, setMsg) {
     setMsg("Đang đọc mã QR...");
-    let q = await capReadQR(work);
-    if (!q && orig !== work) q = await capReadQR(orig);
+    let q = await capTimeout(capReadQR(work).catch(() => null), 15000, null);
+    if (!q && orig !== work) q = await capTimeout(capReadQR(orig).catch(() => null), 15000, null);
     if (q) return { rot: q.rot, info: q.info, method: "QR" };
 
-    try {
-        setMsg("Đang đọc chữ để nhận chiều (lần đầu hơi lâu)...");
-        const o = await capOcrOrient(work);
-        if (o.words >= 5) {
-            let info = null;
-            try {
-                const pn = await capOcrPageNo(capRotate(work, o.rot));
-                if (pn) info = { ma: "", page: pn.page, total: pn.total };
-            } catch (e) {}
-            return { rot: o.rot, info: info, method: "OCR" };
-        }
-    } catch (e) {}
+    if (byId("cpOcr").checked) {
+        setMsg("Đang đọc chữ để nhận chiều (tối đa 45 giây)...");
+        const r = await capTimeout(capOcrFlow(work).catch(() => null), 45000, "timeout");
+        if (r === "timeout") capOcrP = null;          // bỏ worker bị treo
+        else if (r) return r;
+    }
     return { rot: 0, info: null, method: "" };
 }
 
@@ -3152,14 +3159,15 @@ async function capProcess(p) {
 
         if (capCropOn() && p.cropMode !== "none") {
             if (p.cropMode === "auto" && !p.quadTried) {
-                p.quadTried = true;
-                p.msg = "Đang tìm khung giấy...";
-                capRender();
-                const cv = await capCvWait(25000);
+                const cv = capCvNow();
                 if (cv) {
+                    p.quadTried = true;
+                    p.msg = "Đang tìm khung giấy...";
+                    capRender();
                     try { p.quad = capFindQuad(cv, orig); } catch (e) { console.error(e); p.quad = null; }
                 } else {
-                    p.quadTried = false;   // chưa có công cụ: lần sau thử lại
+                    p.quadTried = false;   // công cụ cắt khung chưa tải xong: ảnh hiện ngay, có cv sẽ tự cắt lại
+                    capLib("cv").catch(() => null);
                 }
             }
             if (p.quad) work = capWarp(orig, p.quad);
@@ -3400,7 +3408,6 @@ function capPreload() {
         // ảnh đã chụp trong lúc chờ mà chưa cắt được thì thử lại
         cap.photos.forEach(p => {
             if (!p.busy && capCropOn() && p.cropMode === "auto" && !p.quadTried && !capLibFail.cv) {
-                p.detected = false;
                 capReprocessOne(p);
             }
         });
@@ -3612,6 +3619,10 @@ byId("cpCrop").addEventListener("change", () => {
     capReprocessAll(true);
 });
 byId("cpEnh").addEventListener("change", () => capReprocessAll(false));
+byId("cpOcr").addEventListener("change", () => {
+    if (!byId("cpOcr").checked) return;
+    cap.photos.forEach(p => { if (!p.method && !p.busy) { p.detected = false; capReprocessOne(p); } });
+});
 
 
 // ================= ĐÓNG CHI TIẾT =================
